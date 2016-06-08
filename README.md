@@ -1,0 +1,2 @@
+# animator
+Generic JavaScript Animator
