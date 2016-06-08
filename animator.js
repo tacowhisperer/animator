@@ -172,7 +172,10 @@ function Animator (framesPerSecond) {
         anim.onAnimationEnd         = animationProps.onAnimationEnd? animationProps.onAnimationEnd : function () {};
 
         // Powers each individual animation without cluttering the main object
-        anim.frameGenerator = new FrameGenerator (animationProps.numFrames, anim.onAnimationStart, anim.onAnimationEnd);
+        anim.frameGenerator = new FrameGenerator (animationProps.numFrames,
+                                                  anim.onAnimationStart,
+                                                  anim.onAnimationEnd,
+                                                  anim.updateArguments);
         
         // For internal use in making animation direction changes fluid
         anim.experiencedDirectionChange    = false;
@@ -279,11 +282,38 @@ function Animator (framesPerSecond) {
         return this;
     };
 
+    // Update the on start function for an animation
+    this.updateOnStart = function (animationName, newOnStart) {
+        var anim = animations[animationName];
+
+        if (anim) {
+            anim.onAnimationStart = newOnStart;
+            anim.frameGenerator.updateOnAnimationStart (newOnStart);
+        }
+
+        return this;
+    };
+
+    // Update the on end function for an animation
+    this.updateOnEnd = function (animationName, newOnEnd) {
+        var anim = animations[animationName];
+
+        if (anim) {
+            anim.onAnimationEnd = newOnEnd;
+            anim.frameGenerator.updateOnAnimationEnd (newOnEnd);
+        }
+
+        return this;
+    };
+
     // Updates the update function argument array for the specified animation
     this.updateAnimationArgsArray = function (animationName, newUpdateArgs) {
-        if (animations[animationName]) {
-            animations[animationName].updateArguments = newUpdateArgs;
-            animations[animationName].updateArguments.push (null);
+        var anim = animations[animationName];
+
+        if (anim) {
+            anim.updateArguments = newUpdateArgs;
+            anim.frameGenerator.updateArgumentsArray (newUpdateArgs);
+            anim.updateArguments.push (null);
         }
 
         return this;
@@ -539,6 +569,27 @@ function Animator (framesPerSecond) {
                 // Prevents frame over/underflow and does callbacks for start/end
                 boundCheck ();
             }
+
+            return this;
+        };
+
+        // Updates the arguments array
+        this.updateArgumentsArray = function (newUa) {
+            uA = newUa;
+
+            return this;
+        };
+
+        // Updates the on animation start function
+        this.updateOnAnimationStart = function (newOnStart) {
+            oAS = newOnStart;
+
+            return this;
+        };
+
+        // Updates the on animation end function
+        this.updateOnAnimationEnd = function (newOnEnd) {
+            oAE = newOnEnd;
 
             return this;
         };
