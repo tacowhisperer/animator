@@ -1,10 +1,9 @@
 /**
- * Generic animator object that allows for easy, custom manipulations of values from one
- * state to another. Animations can be tailored based on options that can (and must) be
- * provided through an object.
+ * Generic animator object that allows for easy, custom manipulations of values from one state to another. Animations can be tai-
+ * lored based on options that can (and must) be provided through an object.
  *
- * Note that animations will be normalized to a default value of 60fps, but that can be
- * changed during construction through the only argument accepted.
+ * Note that animations will be normalized to a default value of 60fps, but that can be changed during construction through the
+ * only argument accepted.
  *
  *
  *
@@ -49,17 +48,23 @@
  *                      interpolationTransform - Function that transforms the p argument of the interpolator to another
  *                                               value in [0, 1]. Example: function (v) {return 1 - Math.sqrt (1 - v * v)}
  *
- *                      isActive        - True if the animation should be updated in the main loop, false otherwise.
- *                                        Defaults to true.
+ *                      isActive         - True if the animation should be updated in the main loop, false otherwise.
+ *                                         Defaults to true.
  *
- *                      isSymmetric     - Specifies whether the animation transform should play in the same speed order when
- *                                        animating forward vs animating backward. For example, if an animation transform is
- *                                        slow, then fast when going forward, it should be equally slow, then fast when
- *                                        animating backward. Defaults to true.
+ *                      isSymmetric      - Specifies whether the animation transform should play in the same speed order when
+ *                                         animating forward vs animating backward. For example, if an animation transform is
+ *                                         slow, then fast when going forward, it should be equally slow, then fast when
+ *                                         animating backward. Defaults to true.
  *
- *                      updateArguments - Additional arguments that will be applied to the updater function for that function's
- *                                        use. Note that there is no need to account for the output of the interpolator function
- *                                        as this value is appended to the rightmost position internally.
+ *                      onAnimationStart - Function called when the animation is at 0% (even when starting). Is only called once
+ *                                         each time the animation is at this percentage.
+ *
+ *                      onAnimationEnd   - Functdion called when the animation is at 100% (even when starting). Is only called
+ *                                         once each time the animation is at this percentage.
+ *
+ *                      updateArguments  - Additional arguments that will be applied to the updater function for that function's
+ *                                         use. Note that there is no need to account for the output of the interpolator function
+ *                                         as this value is appended to the rightmost position internally.
  *
  *     removeAnimation - (animationName) <Removes the animation from the animator if it exists. Does nothing otherwise> [this obj]
  *
@@ -79,7 +84,9 @@
  *
  *     updateUpdateFunction     - (animationName, newUpdateFunction) <Re-points the updater to newUpdateFunction> [this object]
  *
+ *     updateOnStart - (animationName, newOnStart) <Updates the animation's onStart callback function> [this object]
  *
+ *     updateOnEnd   - (animationName, newOnEnd) <Updates the animation's onEnd callback function> [this object]
  */
 function Animator (framesPerSecond) {
     // Used to keep track of all animations added via the addAnimation method
@@ -382,8 +389,8 @@ function Animator (framesPerSecond) {
     };
 
     /**
-     * Normalizes variable framerates to the Animator's fps using 4th order Runge-Kutta integration. This
-     * implementation produces framve values that are not necessarily integers.
+     * Normalizes variable framerates to the Animator's fps using 4th order Runge-Kutta integration. This means that frame values
+     * are of the double data type.
      *
      * Arguments:
      *     numFrames   - the highest framve value that the generator should produce
@@ -422,6 +429,12 @@ function Animator (framesPerSecond) {
      *     revertToPercentage - (percent) <Reverts to the frame value corresponding to percent of the way there> [this object]
      *
      *     calculateXStar     - (f, posToNeg) <Used to patch discontinuity for symmetric animation direction changes> [this obj]
+     *
+     *     updateArgumentsArray   - (newUpdateArgumentsArray) <Updates the update arguments array for onanimstart/end> [this obj]
+     *
+     *     updateOnAnimationStart - (newOnStart) <Makes the onAnimationStart callback newOnStart> [this object]
+     *
+     *     updateOnAnimationEnd   - (newOnEnd) <Makes the onAnimationEnd callback newOnEnd> [this object]
      */
     function FrameGenerator (numFrames, onAnimStart, onAnimEnd, updateArgs) {
         var n   = numFrames,
