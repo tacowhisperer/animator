@@ -66,6 +66,8 @@
  *                                         use. Note that there is no need to account for the output of the interpolator function
  *                                         as this value is appended to the rightmost position internally.
  *
+ *     hasAnimation - (animationName) <Tests whether an animation is in the animator or not> [Boolean value]
+ *
  *     removeAnimation - (animationName) <Removes the animation from the animator if it exists. Does nothing otherwise> [this obj]
  *
  *     playAnimation   - (animationName) <Allows an animation to be updated in the main loop> [this object]
@@ -197,6 +199,14 @@ function Animator (framesPerSecond) {
             anim.frameGenerator.pause ();
 
         return this;
+    };
+
+    // Tests whether an animation exists or not in the animator
+    this.hasAnimation = function (animationName) {
+        if (animations[animationName])
+            return true;
+
+        return false;
     };
 
     // Removes an animation from the animations object
