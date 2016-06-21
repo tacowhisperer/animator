@@ -1,8 +1,11 @@
 /**
  * CSS animator
  */
-function CSSAnimation (framesPerSecond) {
+function CSSAnimator (framesPerSecond) {
 	var animator = new Animator (framesPerSecond),
+
+		// Used to keep track of all animations under an animation ID
+		animations = {},
 
 		// A map of all valid CSS color keywords to their corresponding RGBA array
 		colorMap = {
@@ -165,28 +168,45 @@ function CSSAnimation (framesPerSecond) {
 			transparent: [0, 0, 0, 0]
 		};
 
+	// Used to keep track of animations
+	var idCounter = 0;
+
 	// Animates the css properties for the document element as defined in the transitions object
-	this.animate = function (element, transitions) {
+	// transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
+	// transitions = {css0: ["current", endVal, numFrames(, easing)], ...}
+	this.animate = function (element, transitions, animationId) {
+		// Generate a unique ID for the new animation if one is not provided when called
+		if (arguments.length == 2)
+			animationId = idCounter++;
 
 		for (var css in transitions) {
 
-			if (animator.hasAnimation (css)) {
+			var anim = animationId + '-' + css;
+
+			// Overwrite the animation if it exists already with the new values
+			if (animator.hasAnimation (anim)) {
 
 			}
 
+			// Generate a new animation otherwise
 			else {
-
+				
 			}
 		}
 
+		return animationId;
+	};
+
+	// Stops all animations of the animationId like jQuery.stop ()
+	this.stop = function (animationId) {
+
 		return this;
 	};
 
-	// Stops all animations of an element like jQUery.stop ()
-	this.stop = function (element) {
+	// Generates an animation object for a given element and properties to animate
+	function generateAnimationObject (element, transitions) {
 
-		return this;
-	};
+	}
 
 	// Interface for converting incoming css color values to RGBA arrays (color cast function)
 	function cc (cssValue) {
@@ -277,6 +297,10 @@ function CSSAnimation (framesPerSecond) {
 			return rgba;
 		}
 
+		// Value fed is not a valid color
+		else
+			return false;
+
 		// Converts HSL to RGB
 		function h2r (hslString) {
 			// Hue degree
@@ -312,7 +336,6 @@ function CSSAnimation (framesPerSecond) {
 		// Returns the expected values of modulus mathematics
 		function mod (a, b) {return (b + (a % b)) % b}
 	}
-
 
 	/**
 	 * Interpolates 2 valid RGBA arrays at percent q through the CIE*Lab color space.
