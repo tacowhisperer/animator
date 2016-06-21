@@ -188,9 +188,82 @@ function CSSAnimation (framesPerSecond) {
 		return this;
 	};
 
-	// Interface for converting incoming css color values to RGBA arrays
-	function colorCast (cssValue) {
+	// Interface for converting incoming css color values to RGBA arrays (color cast function)
+	function cc (cssValue) {
+		var css = cssValue.toLowerCase ();
 
+		// CSS color keyword
+		if (colorMap[css])
+			return colorMap[css];
+
+		// #rgb or #rrggbb notation
+		else if (css.match (/^#/)) {
+			var t = css.replace (/^#/, ''),
+				rgb = t.length == 3? t.match (/[0-9a-f]/g).map (function (v) {return v + v}) : t.match (/[0-9a-f]{2}/g);
+
+			// Convert each rgb hex value to decimal
+			rgb.map (function (v) {return +('0x' + v)});
+
+			// Append an alpha value of 1
+			rgb.push (1);
+
+			return rgb;
+		}
+
+		// rgb() notation
+		else if (css.match (/rgb(\s|\t)*\(/)) {
+			var rgb = false;
+
+			// Percentage values
+			rgb = css.match (/\d+(\.\d+)?%/g);
+
+			// Integer values
+			if (!rgb)
+				rgb = css.match (/\d+/g);
+
+			// Convert percentages to values
+			else 
+				rgb = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
+
+			// Append an alpha value of 1
+			rgb.push (1);
+
+			return rgb
+		}
+
+		// rgba() notation
+		else if (css.match (/rgba(\s|\t)*\(/)) {
+			var rgba = false;
+
+			// Percentage values
+			rgba = css.match (/\d+(\.\d+)?%/g);
+
+			// Integer values
+			if (!rgba)
+				rgba = css.match (/\d+/g);
+
+			// Convert percentages to values
+			else 
+				rgba = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
+
+			// Extract the alpha value from the rgba string
+			var alpha = css.match (/,\s*\d+(\.\d+)?\s*\)/);
+
+			alpha = alpha? +alpha[0].replace (/,|\)|\s/g, '') : 1;
+			rgba[3] = alpha;
+
+			return rgba;
+		}
+
+		// hsl() notation
+		else if (css.match (/hsl(\s|\t)*\(/)) {
+
+		}
+
+		// hsla() notation
+		else if (css.match (/hsla(\s|\t)*\(/)) {
+
+		}
 	}
 
 
