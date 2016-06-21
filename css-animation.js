@@ -257,13 +257,60 @@ function CSSAnimation (framesPerSecond) {
 
 		// hsl() notation
 		else if (css.match (/hsl(\s|\t)*\(/)) {
+			var rgb = h2r (css);
 
+			// Add the default solid color alpha channel value
+			rgb.push (1);
+
+			return rgb;
 		}
 
 		// hsla() notation
 		else if (css.match (/hsla(\s|\t)*\(/)) {
+			var rgba = h2r (css);
 
+			// Add the alpha channel value
+			var alpha = css.match (/,(\s|\t)*\d+(\.\d+)?(\s|\t)*\)/);
+			alpha = alpha? +alpha[0].replace (/,|\)/g, '') : 1;
+			rgba.push (alpha);
+
+			return rgba;
 		}
+
+		// Converts HSL to RGB
+		function h2r (hslString) {
+			// Hue degree
+			var H = mod (+hslString.match (/\((\s|\t)*\d+(\.\d+)?(\s|\t)*,/)[0].replace (/\(|,/g, ''), 360),
+
+			// Saturation and lightness
+				SL = hslString.match (/\d+%/g).map (function (p) {return +p.replace ('%', '') / 100}),
+				S = SL[0],
+				L = SL[1];
+
+			var C = (1 - Math.abs (2 * L - 1)) * S,
+				X = C * (1 - Math.abs (mod ((H / 60), 2) - 1)),
+				m = L - C / 2;
+
+			var R_G_B_ = H < 60?
+							[C, X, 0] :
+
+						 H < 120?
+						 	[X, C, 0] :
+
+						 H < 180?
+						 	[0, C, X] :
+
+						 H < 240?
+						 	[0, X, C] :
+
+						 H < 300?
+						 	[X, 0, C] : [C, 0, X];
+
+			return [Math.round (255 * (R_G_B_[0] + m)), Math.round (255 * (R_G_B_[1] + m)), Math.round (255 * (R_G_B_[2] + m))];
+		}
+
+		// Returns the expected values of modulus mathematics
+		function mod (a, b) {return (b + (a % b)) % b}
 	}
 
 
