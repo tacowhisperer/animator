@@ -57,10 +57,12 @@
  *                                         animating backward. Defaults to true.
  *
  *                      onAnimationStart - Function called when the animation is at 0% (even when starting). Is only called once
- *                                         each time the animation is at this percentage.
+ *                                         each time the animation is at this percentage. Uses the same argument array as the
+ *                                         updater.
  *
- *                      onAnimationEnd   - Functdion called when the animation is at 100% (even when starting). Is only called
- *                                         once each time the animation is at this percentage.
+ *                      onAnimationEnd   - Function called when the animation is at 100% (even when starting). Is only called
+ *                                         once each time the animation is at this percentage. Uses tthe same argument array as
+ *                                         the updater.
  *
  *                      updateArguments  - Additional arguments that will be applied to the updater function for that function's
  *                                         use. Note that there is no need to account for the output of the interpolator function
