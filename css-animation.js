@@ -9,23 +9,23 @@ function CSSAnimator (framesPerSecond) {
 
         // The different animation transition types (interpolation transform functions)
         transforms = {
-            linear: function (x) {return x},
+            linear:            function (x) {return x},
 
-            cosine: function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
+            cosine:            function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
 
-            'exp-hard': function (x) {return (1 - Math.exp (9 * x)) / (1 - Math.exp (9))},
+            'exp-hard':        function (x) {return (1 - Math.exp (9 * x)) / (1 - Math.exp (9))},
 
-            'exp-medium': function (x) {return (1 - Math.exp (4 * x)) / (1 - Math.exp (4))},
+            'exp-medium':      function (x) {return (1 - Math.exp (4 * x)) / (1 - Math.exp (4))},
 
-            'exp-soft': function (x) {return (1 - Math.exp (x)) / (1 - Math.E)},
+            'exp-soft':        function (x) {return (1 - Math.exp (x)) / (1 - Math.E)},
 
-            '-exp-hard': function (x) {return (1 - Math.exp (-9 * x)) / (1 - Math.exp (-9))},
+            '-exp-hard':       function (x) {return (1 - Math.exp (-9 * x)) / (1 - Math.exp (-9))},
 
-            '-exp-medium': function (x) {return (1 - Math.exp (-4 * x)) / (1 - Math.exp (-4))},
+            '-exp-medium':     function (x) {return (1 - Math.exp (-4 * x)) / (1 - Math.exp (-4))},
 
-            '-exp-soft': function (x) {return (1 - Math.exp (-x)) / (1 - Math.exp (-1))},
+            '-exp-soft':       function (x) {return (1 - Math.exp (-x)) / (1 - Math.exp (-1))},
 
-            'circular-hill': function (x) {return Math.sqrt (1 - Math.pow (x - 1, 2))},
+            'circular-hill':   function (x) {return Math.sqrt (1 - Math.pow (x - 1, 2))},
 
             'circular-valley': function (x) {return 1 - Math.sqrt (1 - x * x)}
         },
@@ -235,6 +235,8 @@ function CSSAnimator (framesPerSecond) {
         if (animationsForElement) {
             for (var i = 0; i < animationsForElement.length; i++)
                 animator.removeAnimation (animationsForElement[i]);
+
+            animations[animationId] = false;
         }
 
         return this;
@@ -265,8 +267,61 @@ function CSSAnimator (framesPerSecond) {
     };
 
     // Generates an animation object for a given element and properties to animate
-    function generateAnimationObject (element, transitions) {
+    function generateAnimationObject (element, transitions, animationId) {
+        // Index values
+        var START_VALUE = 0,
+            END_VALUE   = 1,
+            NUM_FRAMES  = 2,
+            EASING      = 3;
 
+        // Get a unique ID each time this function gets called
+        animationId = typeof animationId == 'number'? animationId : idCounter++;
+
+
+        // Create each instance of an animation object to feed to the animator
+        var animationsFromTransition = [];
+
+        for (var css in transitions) {
+            var // process "current" value that could be fed as a css value
+            var animation = {
+                animationName: animationId + '-' + css,
+                startValue:    transitions[css][START_VALUE],
+                endValue:      transitions[css][END_VALUE],
+                interpolator:  ,
+                updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
+
+                interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
+                onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
+                onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
+                updateArguments: [element, css, transitions[css][START_VALUE]]
+            };
+
+            animationsFromTransition.push (animation);
+        }
+
+
+        return [animationId, animationsFromTransition];
+    }
+
+    /**
+     * Interpolates 2 valid CSS units
+     */
+    function cssInterpolate (v0, v1, q) {
+        var css0 = cc (v0),
+            css1 = cc (v1);
+
+        // This is going to be a color interpolation
+        if (css0 && css1) 
+            return rgbaInterpolate (css0, css1, q);
+
+        // One value is a color and another value is a unit measurement
+        else if (css0 || css1)
+            throw 'CSS values must both be either unit measurements or color values';
+
+        // Both values must be unit measurements of sorts
+        else {
+
+        }
     }
 
     // Interface for converting incoming css color values to RGBA arrays (color cast function)
