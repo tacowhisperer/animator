@@ -203,10 +203,10 @@ function CSSAnimator (framesPerSecond) {
             animationId = idCounter++;
 
         // Get every animation that is given in the transitions object
-        var animationsForElement = [];
+        var [animationsForElement] = [];
         for (var css in transitions) {
 
-            var anim = animationId + '-' + css;
+            var anim = animName (animationId, css);
 
             // Overwrite the animation if it exists already with the new values
             if (animator.hasAnimation (anim)) {
@@ -215,7 +215,7 @@ function CSSAnimator (framesPerSecond) {
 
             // Generate a new animation otherwise
             else {
-                
+                var animation = generateAnimationObject (element, transitions)
             }
 
             // Store the animation under the animation id for book keeping
@@ -268,7 +268,7 @@ function CSSAnimator (framesPerSecond) {
 
     // Generates an animation object for a given element and properties to animate
     function generateAnimationObject (element, transitions, animationId) {
-        // Index values
+        // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
             END_VALUE   = 1,
             NUM_FRAMES  = 2,
@@ -278,16 +278,19 @@ function CSSAnimator (framesPerSecond) {
         animationId = typeof animationId == 'number'? animationId : idCounter++;
 
 
-        // Create each instance of an animation object to feed to the animator
+        // Create an animation object to feed to the animator for every css property of the element
         var animationsFromTransition = [];
 
         for (var css in transitions) {
-            var // process "current" value that could be fed as a css value
+        	// Because the initial value can be "current", get a valid css property to initialize the object
+            var currentCSSValue = transitions[css][START_VALUE] == 'current'? element.style[css] : transitions[css][START_VALUE];
+            
+            // Assembly of the pieces to make the object to be fed to the animator
             var animation = {
-                animationName: animationId + '-' + css,
-                startValue:    transitions[css][START_VALUE],
+                animationName: animName (animationId, css),
+                startValue:    currentCSSValue,
                 endValue:      transitions[css][END_VALUE],
-                interpolator:  ,
+                interpolator:  cssInterpolate,
                 updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
 
                 interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
@@ -320,7 +323,23 @@ function CSSAnimator (framesPerSecond) {
 
         // Both values must be unit measurements of sorts
         else {
+            var v0Unit = v0.match (/\D+$/),
+                v1Unit = v1.match (/\D+$/);
 
+            v0Unit = v0Unit? v0Unit[0] : v0Unit;
+            v1Unit = v1Unit? v1Unit[0] : v1Unit;
+
+            // Units must be of the same type to have any meaning
+            if (v0Unit != v1Unit)
+            	throw 'CSS unit type mismatch: "' + v0Unit + '" vs "' + v1Unit + '"';
+
+            // Do a linear interpolation of the values and return the value as a string with its unit if one is provided
+            else {
+            	var v0Value = +v0.match (/\d+(\.\d+)?/)[0],
+            		v1Value = +v1.match (/\d+(\.\d+)?/)[0];
+
+            	return ((1 - q) * v0Value + q * v1Value) + v0Unit;
+            }
         }
     }
 
@@ -338,7 +357,7 @@ function CSSAnimator (framesPerSecond) {
                 rgb = t.length == 3? t.match (/[0-9a-f]/g).map (function (v) {return v + v}) : t.match (/[0-9a-f]{2}/g);
 
             // Convert each rgb hex value to decimal
-            rgb.map (function (v) {return +('0x' + v)});
+            rgb = rgb.map (function (v) {return +('0x' + v)});
 
             // Append an alpha value of 1
             rgb.push (1);
@@ -414,8 +433,7 @@ function CSSAnimator (framesPerSecond) {
         }
 
         // Value fed is not a valid color
-        else
-            return false;
+        else return false;
 
         // Converts HSL to RGB
         function h2r (hslString) {
@@ -564,4 +582,7 @@ function CSSAnimator (framesPerSecond) {
 
         return 'rgba(' + r(iRGBA[RED]) + ',' + r(iRGBA[GREEN]) + ',' + r(iRGBA[BLUE]) + ',' + alphaValue + ')';
     }
+
+    // Removes the need to keep track of naming conventions
+    function animName (animationId, cssProperty) {return animationId + '-' + cssProperty}
 }
