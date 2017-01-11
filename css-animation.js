@@ -4,6 +4,9 @@
 function CSSAnimator (framesPerSecond) {
     var animator = new Animator (framesPerSecond),
 
+    	// Used to differentiate between animators
+    	cssAnimatorId = uniqueAnimatorIdentification (),
+
         // Used to keep track of all animations under an animation ID
         animations = {},
 
@@ -199,23 +202,27 @@ function CSSAnimator (framesPerSecond) {
     // transitions = {css0: ["current", endVal, numFrames(, easing)], ...}
     this.animate = function (element, transitions, animationId) {
         // Generate a unique ID for the new animation if one is not provided when called
-        if (arguments.length == 2)
-            animationId = idCounter++;
+        if (arguments.length == 2) {
+        	if (typeof element.customCSSAnimationIdentification != 'number') {
+            	animationId = idCounter++;
+            	element.customCSSAnimationIdentification = animationId;
+        	}
+
+        	// Allows for the method to be chainable
+        	animationId = element.customCSSAnimationIdentification; // TODO: Add use of cssAnimatorId here
+        }
 
         // Get every animation that is given in the transitions object
-        var [animationsForElement] = [];
+        var animationsForElement = [];
         for (var css in transitions) {
-
-            var anim = animName (animationId, css);
-
             // Overwrite the animation if it exists already with the new values
-            if (animator.hasAnimation (anim)) {
+            if (animator.hasAnimation (animName (animationId, css))) {
 
             }
 
             // Generate a new animation otherwise
             else {
-                var animation = generateAnimationObject (element, transitions)
+                var [animId, animationForAnimator] = generateAnimationObject (element, transitions, css, animationId);
             }
 
             // Store the animation under the animation id for book keeping
@@ -267,43 +274,34 @@ function CSSAnimator (framesPerSecond) {
     };
 
     // Generates an animation object for a given element and properties to animate
-    function generateAnimationObject (element, transitions, animationId) {
+    function generateAnimationObject (element, transitions, css, animationId) {
         // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
             END_VALUE   = 1,
             NUM_FRAMES  = 2,
             EASING      = 3;
 
-        // Get a unique ID each time this function gets called
-        animationId = typeof animationId == 'number'? animationId : idCounter++;
+
+        // Because the initial value can be "current", get a valid css property to initialize the object
+        var currentCSSValueStart = transitions[css][START_VALUE] == 'current'? element.style[css] : transitions[css][START_VALUE],
+        	currentCSSValueEnd = transitions[css][END_VALUE] == 'current'? element.style[css] : transitions[css][END_VALUE];
+        
+        // Assembly of the pieces to make the object to be fed to the animator
+        var animation = {
+            animationName: animName (animationId, css),
+            startValue:    currentCSSValueStart,
+            endValue:      currentCSSValueEnd,
+            interpolator:  cssInterpolate,
+            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
+
+            interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
+            onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
+            onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
+            updateArguments: [element, css, transitions[css][START_VALUE]]
+        };
 
 
-        // Create an animation object to feed to the animator for every css property of the element
-        var animationsFromTransition = [];
-
-        for (var css in transitions) {
-        	// Because the initial value can be "current", get a valid css property to initialize the object
-            var currentCSSValue = transitions[css][START_VALUE] == 'current'? element.style[css] : transitions[css][START_VALUE];
-            
-            // Assembly of the pieces to make the object to be fed to the animator
-            var animation = {
-                animationName: animName (animationId, css),
-                startValue:    currentCSSValue,
-                endValue:      transitions[css][END_VALUE],
-                interpolator:  cssInterpolate,
-                updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
-
-                interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
-                onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
-                onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
-                updateArguments: [element, css, transitions[css][START_VALUE]]
-            };
-
-            animationsFromTransition.push (animation);
-        }
-
-
-        return [animationId, animationsFromTransition];
+        return animation;
     }
 
     /**
@@ -584,5 +582,8 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Removes the need to keep track of naming conventions
-    function animName (animationId, cssProperty) {return animationId + '-' + cssProperty}
+    function animName (animationId, cssProperty) {return cssAnimatorId + '-' + animationId + '-' + cssProperty}
+
+    // Used to distinguish between different animator objects (assumes a synchronous web browser)
+    function uniqueAnimatorIdentification () {return Date.now ()}
 }
