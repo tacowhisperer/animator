@@ -245,11 +245,11 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // Stops all animations of the animationId like jQuery.stop () by removing the animation from the animator
+    // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
     this.stop = function (element, ...cssProps) {
-        // Only work with animations that exist in the animator
+        // Only work with elements that have animations in the animator
         if (typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[animationId];
+            var animationsForElement = animations[element.customCSSAnimationIdentification];
 
             if (animationsForElement) {
                 for (var i = 0; i < animationsForElement.length; i++)
@@ -262,11 +262,11 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // Pauses all animations for the given animationId
+    // Pauses all animations for the given element if it exists in the animator
     this.pause = function (element, ...cssProps) {
-        // Only work with animations that exist in the animator
+        // Only work with elements that have animations in the animator
         if (typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[animationId];
+            var animationsForElement = animations[element.customCSSAnimationIdentification];
 
             if (animationsForElement) {
                 for (var i = 0; i < animationsForElement.length; i++)
@@ -277,11 +277,11 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // Plays all animations for the given animationId
+    // Plays all animations for the given element if it exists in the animator
     this.play = function (element, ...cssProps) {
-        // Only work with animations that exist in the animator
+        // Only work with elements that have animations in the animator
         if (typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[animationId];
+            var animationsForElement = animations[element.customCSSAnimationIdentification];
 
             if (animationsForElement) {
                 for (var i = 0; i < animationsForElement.length; i++)
