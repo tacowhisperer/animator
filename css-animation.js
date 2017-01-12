@@ -16,6 +16,18 @@ function CSSAnimator (framesPerSecond) {
 
             cosine:            function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
 
+            poly3:             function (x) {var c = 3, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
+
+            root3:             function (x) {var c = 3, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
+
+            poly5:             function (x) {var c = 5, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
+
+            root5:             function (x) {var c = 5, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
+
+            poly7:             function (x) {var c = 7, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
+
+            root7:             function (x) {var c = 7, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
+
             'exp-hard':        function (x) {return (1 - Math.exp (9 * x)) / (1 - Math.exp (9))},
 
             'exp-medium':      function (x) {return (1 - Math.exp (4 * x)) / (1 - Math.exp (4))},
@@ -205,11 +217,11 @@ function CSSAnimator (framesPerSecond) {
         if (arguments.length == 2) {
         	if (typeof element.customCSSAnimationIdentification != 'number') {
             	animationId = idCounter++;
-            	element.customCSSAnimationIdentification = animationId;
+            	element.customCSSAnimationIdentification = cssAnimatorIdentifier (animationId);
         	}
 
         	// Allows for the method to be chainable
-        	animationId = element.customCSSAnimationIdentification; // TODO: Add use of cssAnimatorId here
+        	animationId = element.customCSSAnimationIdentification;
         }
 
         // Get every animation that is given in the transitions object
@@ -222,7 +234,7 @@ function CSSAnimator (framesPerSecond) {
 
             // Generate a new animation otherwise
             else {
-                var [animId, animationForAnimator] = generateAnimationObject (element, transitions, css, animationId);
+                var animObject = generateAnimationObject (element, transitions, css, animationId);
             }
 
             // Store the animation under the animation id for book keeping
@@ -581,8 +593,11 @@ function CSSAnimator (framesPerSecond) {
         return 'rgba(' + r(iRGBA[RED]) + ',' + r(iRGBA[GREEN]) + ',' + r(iRGBA[BLUE]) + ',' + alphaValue + ')';
     }
 
+    // Helps distinguish CSS Animators from each other (assumes a synchronous browser)
+    function cssAnimatorIdentifier (animationId) {return cssAnimatorId + '-' + animationId}
+
     // Removes the need to keep track of naming conventions
-    function animName (animationId, cssProperty) {return cssAnimatorId + '-' + animationId + '-' + cssProperty}
+    function animName (animationId, cssProperty) {return cssAnimatorIdentifier (animationId) + '-' + cssProperty}
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
     function uniqueAnimatorIdentification () {return Date.now ()}
