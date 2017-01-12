@@ -212,17 +212,15 @@ function CSSAnimator (framesPerSecond) {
     // Animates the css properties for the document element as defined in the transitions object
     // transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
     // transitions = {css0: ["current", endVal, numFrames(, easing)], ...}
-    this.animate = function (element, transitions, animationId) {
+    this.animate = function (element, transitions) {
         // Generate a unique ID for the new animation if one is not provided when called
-        if (arguments.length == 2) {
-        	if (typeof element.customCSSAnimationIdentification != 'number') {
-            	animationId = idCounter++;
-            	element.customCSSAnimationIdentification = cssAnimatorIdentifier (animationId);
-        	}
+    	if (typeof element.customCSSAnimationIdentification != 'number') {
+        	animationId = idCounter++;
+        	element.customCSSAnimationIdentification = animationId;
+    	}
 
-        	// Allows for the method to be chainable
-        	animationId = element.customCSSAnimationIdentification;
-        }
+    	// Allows for the method to be chainable
+    	animationId = element.customCSSAnimationIdentification;
 
         // Get every animation that is given in the transitions object
         var animationsForElement = [];
@@ -244,42 +242,51 @@ function CSSAnimator (framesPerSecond) {
         // Update the animations mapped to the element
         animations[animationId] = animationsForElement;
 
-        return animationId;
+        return this;
     };
 
     // Stops all animations of the animationId like jQuery.stop () by removing the animation from the animator
-    this.stop = function (animationId) {
-        var animationsForElement = animations[animationId];
+    this.stop = function (element, ...cssProps) {
+        // Only work with animations that exist in the animator
+        if (typeof element.customCSSAnimationIdentification == 'number') {
+            var animationsForElement = animations[animationId];
 
-        if (animationsForElement) {
-            for (var i = 0; i < animationsForElement.length; i++)
-                animator.removeAnimation (animationsForElement[i]);
+            if (animationsForElement) {
+                for (var i = 0; i < animationsForElement.length; i++)
+                    animator.removeAnimation (animationsForElement[i]);
 
-            animations[animationId] = false;
+                animations[animationId] = false;
+            }
         }
 
         return this;
     };
 
     // Pauses all animations for the given animationId
-    this.pause = function (animationId) {
-        var animationsForElement = animations[animationId];
+    this.pause = function (element, ...cssProps) {
+        // Only work with animations that exist in the animator
+        if (typeof element.customCSSAnimationIdentification == 'number') {
+            var animationsForElement = animations[animationId];
 
-        if (animationsForElement) {
-            for (var i = 0; i < animationsForElement.length; i++)
-                animator.pauseAnimation (animationsForElement[i]);
+            if (animationsForElement) {
+                for (var i = 0; i < animationsForElement.length; i++)
+                    animator.pauseAnimation (animationsForElement[i]);
+            }
         }
 
         return this;
     };
 
     // Plays all animations for the given animationId
-    this.play = function (animationId) {
-        var animationsForElement = animations[animationId];
+    this.play = function (element, ...cssProps) {
+        // Only work with animations that exist in the animator
+        if (typeof element.customCSSAnimationIdentification == 'number') {
+            var animationsForElement = animations[animationId];
 
-        if (animationsForElement) {
-            for (var i = 0; i < animationsForElement.length; i++)
-                animator.playAnimation (animationsForElement[i]);
+            if (animationsForElement) {
+                for (var i = 0; i < animationsForElement.length; i++)
+                    animator.playAnimation (animationsForElement[i]);
+            }
         }
         
         return this;
@@ -309,7 +316,7 @@ function CSSAnimator (framesPerSecond) {
             interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
             onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
             onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
-            updateArguments: [element, css, transitions[css][START_VALUE]]
+            updateArguments: [element, css, transitions[css][START_VALUE], transitions[css][END_VALUE]]
         };
 
 
