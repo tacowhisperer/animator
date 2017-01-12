@@ -61,7 +61,7 @@
  *                                         updater.
  *
  *                      onAnimationEnd   - Function called when the animation is at 100% (even when starting). Is only called
- *                                         once each time the animation is at this percentage. Uses tthe same argument array as
+ *                                         once each time the animation is at this percentage. Uses the same argument array as
  *                                         the updater.
  *
  *                      updateArguments  - Additional arguments that will be applied to the updater function for that function's
@@ -79,6 +79,8 @@
  *     setAnimationForward  - (animationName) <Makes the animation be interpolated positively (0 -> 1)> [this object]
  *
  *     setAnimationBackward - (animationName) <Makes the animation be interpolated negatively (1 -> 0)> [this object]
+ *
+ *     switchAnimationDirection - (animationName) <Makes the animation be interpolated in the opposite direction of its current state> [this object]
  *
  *     resetAnimation - (animationName) <Sets the animation to the 0% state> [this object]
  *
@@ -280,6 +282,19 @@ function Animator (framesPerSecond) {
             else animation.initializedADirectionToChange = true;
 
             animation.previousDirectionWasForward = false;
+        }
+
+        return this;
+    };
+
+    // Switches the animation's direction if the animation is found in the animator. Does nothing otherwise.
+    this.switchAnimationDirection = function (animationName) {
+        var animation = animations[animationName];
+
+        if (animation) {
+            animation.animationDirection = !animation.animationDirection;
+            animation.experiencedDirectionChange = true;
+            animation.previousDirectionWasForward = !animation.animationDirection;
         }
 
         return this;
