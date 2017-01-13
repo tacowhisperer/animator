@@ -209,6 +209,7 @@ function CSSAnimator (framesPerSecond) {
     // Used to keep track of animations
     var idCounter = 0;
 
+
     // Animates the css properties for the document element as defined in the transitions object
     // transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
     // transitions = {css0: ["current", endVal, numFrames(, easing)], ...}
@@ -223,7 +224,7 @@ function CSSAnimator (framesPerSecond) {
     	animationId = element.customCSSAnimationIdentification;
 
         // Get every animation that is given in the transitions object
-        var animationsForElement = [];
+        var animationsForElement = {};
         for (var css in transitions) {
             // Overwrite the animation if it exists already with the new values
             if (animator.hasAnimation (animName (animationId, css))) {
@@ -235,8 +236,8 @@ function CSSAnimator (framesPerSecond) {
                 var animObject = generateAnimationObject (element, transitions, css, animationId);
             }
 
-            // Store the animation under the animation id for book keeping
-            animationsForElement.push (anim);
+            // Store a shallow copy of the transitions object
+            animationsForElement[css] = transitions[css];
         }
 
         // Update the animations mapped to the element
@@ -247,50 +248,50 @@ function CSSAnimator (framesPerSecond) {
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
     this.stop = function (element, ...cssProps) {
-        // Only work with elements that have animations in the animator
-        if (typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[element.customCSSAnimationIdentification];
-
-            if (animationsForElement) {
-                for (var i = 0; i < animationsForElement.length; i++)
-                    animator.removeAnimation (animationsForElement[i]);
-
-                animations[animationId] = false;
-            }
-        }
+        cssAnimatorMethodWorker (element, cssProps, 'removeAnimation', function (animationId) {delete animations[animationId]});
 
         return this;
     };
 
     // Pauses all animations for the given element if it exists in the animator
     this.pause = function (element, ...cssProps) {
-        // Only work with elements that have animations in the animator
-        if (typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[element.customCSSAnimationIdentification];
-
-            if (animationsForElement) {
-                for (var i = 0; i < animationsForElement.length; i++)
-                    animator.pauseAnimation (animationsForElement[i]);
-            }
-        }
+        cssAnimatorMethodWorker (element, cssProps, 'pauseAnimation');
 
         return this;
     };
 
     // Plays all animations for the given element if it exists in the animator
     this.play = function (element, ...cssProps) {
+        cssAnimatorMethodWorker (element, cssProps, 'playAnimation');
+        
+        return this;
+    };
+
+    // Encapsulates
+    function cssAnimatorMethodWorker (element, cssProperties, animatorMethodName, callback) {
         // Only work with elements that have animations in the animator
         if (typeof element.customCSSAnimationIdentification == 'number') {
             var animationsForElement = animations[element.customCSSAnimationIdentification];
 
             if (animationsForElement) {
-                for (var i = 0; i < animationsForElement.length; i++)
-                    animator.playAnimation (animationsForElement[i]);
+                // Only work with the CSS properties given during method call
+                if (cssProps.length) {
+
+                }
+
+                // Unless none are specified, so work with all of them
+                else {
+                    for (var css in animationsForElement) {
+                        if (animator.hasAnimation (animName (element.customCSSAnimationIdentification, css)))
+                            animator[animatorMethodName] (animName (element.customCSSAnimationIdentification, css));
+                    }
+                }
+
+                if (callback) 
+                    callback (element.customCSSAnimationIdentification)
             }
         }
-        
-        return this;
-    };
+    }
 
     // Generates an animation object for a given element and properties to animate
     function generateAnimationObject (element, transitions, css, animationId) {
