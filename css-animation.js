@@ -210,9 +210,13 @@ function CSSAnimator (framesPerSecond) {
     var idCounter = 0;
 
 
-    // Animates the css properties for the document element as defined in the transitions object
-    // transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
-    // transitions = {css0: ["current", endVal, numFrames(, easing)], ...}
+    // Animates the css properties for the document element as defined in the transitions object. Treats
+    // each animation like it is a new one (thus allowing smooth back-and-forth animations)
+
+    // Transitions object format:
+    //     transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
+    //     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
+    //     transitions = {css0: [endVal, numFrames(, easing)]}
     this.animate = function (element, transitions) {
         // Generate a unique ID for the new animation if one is not provided when called
     	if (typeof element.customCSSAnimationIdentification != 'number') {
@@ -226,15 +230,11 @@ function CSSAnimator (framesPerSecond) {
         // Get every animation that is given in the transitions object
         var animationsForElement = {};
         for (var css in transitions) {
-            // Overwrite the animation if it exists already with the new values
-            if (animator.hasAnimation (animName (animationId, css))) {
+            var animObject = generateAnimationObject (element, transitions, css, animationId);
+            
 
-            }
+            // TODO: Figure out what goes here
 
-            // Generate a new animation otherwise
-            else {
-                var animObject = generateAnimationObject (element, transitions, css, animationId);
-            }
 
             // Store a shallow copy of the transitions object
             animationsForElement[css] = transitions[css];
@@ -267,7 +267,7 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // Encapsulates
+    // Modulates the main work of this.stop, this.pause, and this.play for the CSS Animator object
     function cssAnimatorMethodWorker (element, cssProperties, animatorMethodName, callback) {
         // Only work with elements that have animations in the animator
         if (typeof element.customCSSAnimationIdentification == 'number') {
@@ -276,7 +276,10 @@ function CSSAnimator (framesPerSecond) {
             if (animationsForElement) {
                 // Only work with the CSS properties given during method call
                 if (cssProps.length) {
-
+                    for (var i = 0; i < cssProps.length; i++) {
+                        if (animator.hasAnimation (animName (element.customCSSAnimationIdentification, cssProps[i])))
+                            animator[animatorMethodName] (animName (element.customCSSAnimationIdentification, cssProps[i]));
+                    }
                 }
 
                 // Unless none are specified, so work with all of them
@@ -297,10 +300,46 @@ function CSSAnimator (framesPerSecond) {
     function generateAnimationObject (element, transitions, css, animationId) {
         // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
-            END_VALUE   = 1,
-            NUM_FRAMES  = 2,
-            EASING      = 3;
+            END_VALUE = 1,
+            NUM_FRAMES = 2,
+            EASING = 3;
 
+        // Removes the need to do constant type checks of values see what was given from the user
+        var trans = [null, null, null, null];
+
+        // [startValue, endValue, numFrames, easing]
+        if (transitions[css].length == 4) {
+            trans[START_VALUE] = transitions[css][0];
+            trans[END_VALUE] = transitions[css][1];
+            trans[NUM_FRAMES] = transitions[css][2];
+            trans[EASING] = transitions[css][3];
+        }
+
+        else if (transitions[css].length == 3) {
+            // [endValue, numFrames, easing]
+            if (typeof transitions[css][2] == 'function') {
+                trans[START_VALUE] = 'current';
+                trans[END_VALUE] = transitions[css][0];
+                trans[NUM_FRAMES] = transitions[css][1];
+                trans[EASING] = transitions[css][2];
+            }
+
+            // [startValue, endValue, numFrames]
+            else {
+                trans[START_VALUE] = transitions[css][0];
+                trans[END_VALUE] = transitions[css][1];
+                trans[NUM_FRAMES] = transitions[css][2];
+                trans[EASING] = false;
+            }
+        }
+
+        // [endValue, numFrames]
+        else if (transitions[css].length == 2) {
+            trans[START_VALUE] = 'current';
+            trans[END_VALUE] = transitions[css][0];
+            trans[NUM_FRAMES] = transitions[css][1];
+            trans[EASING] = false;
+        }
 
         // Because the initial value can be "current", get a valid css property to initialize the object
         var currentCSSValueStart = transitions[css][START_VALUE] == 'current'? element.style[css] : transitions[css][START_VALUE],
@@ -598,7 +637,15 @@ function CSSAnimator (framesPerSecond) {
             return [R, G, B];
         }
 
-        return 'rgba(' + r(iRGBA[RED]) + ',' + r(iRGBA[GREEN]) + ',' + r(iRGBA[BLUE]) + ',' + alphaValue + ')';
+        var redValue = r(iRGBA[RED]),
+            greenValue = r(iRGBA[GREEN]),
+            blueValue = r(iRGBA[BLUE]);
+
+        redValue = redValue < 0? 0 : redValue;
+        greenValue = greenValue < 0? 0 : greenValue;
+        blueValue = blueValue < 0? 0 : greenValue;
+
+        return 'rgba(' + redValue + ',' + greenValue + ',' + blueValue + ',' + alphaValue + ')';
     }
 
     // Helps distinguish CSS Animators from each other (assumes a synchronous browser)
