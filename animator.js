@@ -166,8 +166,10 @@ function Animator (framesPerSecond) {
 
     // Adds an animation object to the animator
     this.addAnimation = function (animationProps) {
+        // Create a new spot for an animation, or reset an old one if it exists already
         animations[animationProps.animationName] = {};
 
+        // Aliasing for readability
         var anim = animations[animationProps.animationName];
 
         // Animation values extracted from the animationProps object
