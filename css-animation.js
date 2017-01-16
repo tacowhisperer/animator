@@ -2,7 +2,8 @@
  * CSS animator
  */
 function CSSAnimator (framesPerSecond) {
-    var animator = new Animator (framesPerSecond),
+    var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
+        animator = new Animator (FPS),
 
     	// Used to differentiate between animators
     	cssAnimatorId = uniqueAnimatorIdentification (),
@@ -230,10 +231,7 @@ function CSSAnimator (framesPerSecond) {
         // Get every animation that is given in the transitions object
         var animationsForElement = {};
         for (var css in transitions) {
-            var animObject = generateAnimationObject (element, transitions, css, animationId);
-            
-
-            // TODO: Figure out what goes here
+            animator.addAnimation (generateAnimationObject (element, transitions, css, animationId));
 
 
             // Store a shallow copy of the transitions object
@@ -247,22 +245,22 @@ function CSSAnimator (framesPerSecond) {
     };
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
-    this.stop = function (element, ...cssProps) {
-        cssAnimatorMethodWorker (element, cssProps, 'removeAnimation', function (animationId) {delete animations[animationId]});
+    this.stop = function (element, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'removeAnimation', function (animationId) {delete animations[animationId]});
 
         return this;
     };
 
     // Pauses all animations for the given element if it exists in the animator
-    this.pause = function (element, ...cssProps) {
-        cssAnimatorMethodWorker (element, cssProps, 'pauseAnimation');
+    this.pause = function (element, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'pauseAnimation');
 
         return this;
     };
 
     // Plays all animations for the given element if it exists in the animator
-    this.play = function (element, ...cssProps) {
-        cssAnimatorMethodWorker (element, cssProps, 'playAnimation');
+    this.play = function (element, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'playAnimation');
         
         return this;
     };
@@ -351,7 +349,7 @@ function CSSAnimator (framesPerSecond) {
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
-            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
+            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {console.log('running'); el.style[cssProperty] = intermittentCSSValue},
 
             interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
             onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
@@ -359,6 +357,7 @@ function CSSAnimator (framesPerSecond) {
             updateArguments: [element, css, transitions[css][START_VALUE], transitions[css][END_VALUE]]
         };
 
+        console.log (animation);
 
         return animation;
     }
