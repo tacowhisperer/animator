@@ -296,7 +296,7 @@ function Animator (framesPerSecond) {
         if (animation) {
             animation.animationDirection = !animation.animationDirection;
             animation.experiencedDirectionChange = true;
-            animation.previousDirectionWasForward = !animation.animationDirection;
+            animation.previousDirectionWasForward = animation.animationDirection;
         }
 
         return this;
