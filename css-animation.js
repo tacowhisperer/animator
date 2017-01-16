@@ -232,6 +232,7 @@ function CSSAnimator (framesPerSecond) {
         var animationsForElement = {};
         for (var css in transitions) {
             animator.addAnimation (generateAnimationObject (element, transitions, css, animationId));
+            animator.start ();
 
 
             // Store a shallow copy of the transitions object
@@ -266,9 +267,9 @@ function CSSAnimator (framesPerSecond) {
     };
 
     // Modulates the main work of this.stop, this.pause, and this.play for the CSS Animator object
-    function cssAnimatorMethodWorker (element, cssProperties, animatorMethodName, callback) {
+    function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callback) {
         // Only work with elements that have animations in the animator
-        if (typeof element.customCSSAnimationIdentification == 'number') {
+        if (element && typeof element.customCSSAnimationIdentification == 'number') {
             var animationsForElement = animations[element.customCSSAnimationIdentification];
 
             if (animationsForElement) {
@@ -305,6 +306,8 @@ function CSSAnimator (framesPerSecond) {
         // Removes the need to do constant type checks of values see what was given from the user
         var trans = [null, null, null, null];
 
+        console.log (transitions[css]);
+
         // [startValue, endValue, numFrames, easing]
         if (transitions[css].length == 4) {
             trans[START_VALUE] = transitions[css][0];
@@ -340,8 +343,8 @@ function CSSAnimator (framesPerSecond) {
         }
 
         // Because the initial value can be "current", get a valid css property to initialize the object
-        var currentCSSValueStart = transitions[css][START_VALUE] == 'current'? element.style[css] : transitions[css][START_VALUE],
-        	currentCSSValueEnd = transitions[css][END_VALUE] == 'current'? element.style[css] : transitions[css][END_VALUE];
+        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
+        	currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
         
         // Assembly of the pieces to make the object to be fed to the animator
         var animation = {
@@ -349,15 +352,13 @@ function CSSAnimator (framesPerSecond) {
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
-            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {console.log('running'); el.style[cssProperty] = intermittentCSSValue},
+            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {/*console.log(intermittentCSSValue); */el.style[cssProperty] = intermittentCSSValue},
 
-            interpolationTransform: transforms[transitions[css][EASING]]? transforms[transitions[css][EASING]] : transforms.linear,
+            interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
             onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
             onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
-            updateArguments: [element, css, transitions[css][START_VALUE], transitions[css][END_VALUE]]
+            updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE]]
         };
-
-        console.log (animation);
 
         return animation;
     }

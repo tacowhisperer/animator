@@ -121,6 +121,8 @@ function Animator (framesPerSecond) {
                 var uA = a.updateArguments,
                     p = fG.next (a.animationDirection).percent ();
 
+                console.log (p);
+
                 // Reflects the animation transform if the animation should be symmetric
                 if (!a.animationDirection && a.isSymmetric) {
                     if (a.experiencedDirectionChange) {
