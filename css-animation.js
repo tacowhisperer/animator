@@ -352,6 +352,7 @@ function CSSAnimator (framesPerSecond) {
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
+            numFrames:     trans[NUM_FRAMES],
             updater:       function (el, cssProperty, s, e, intermittentCSSValue) {/*console.log(intermittentCSSValue); */el.style[cssProperty] = intermittentCSSValue},
 
             interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,

@@ -121,8 +121,6 @@ function Animator (framesPerSecond) {
                 var uA = a.updateArguments,
                     p = fG.next (a.animationDirection).percent ();
 
-                console.log (p);
-
                 // Reflects the animation transform if the animation should be symmetric
                 if (!a.animationDirection && a.isSymmetric) {
                     if (a.experiencedDirectionChange) {
@@ -468,7 +466,7 @@ function Animator (framesPerSecond) {
      *     updateOnAnimationEnd   - (newOnEnd) <Makes the onAnimationEnd callback newOnEnd> [this object]
      */
     function FrameGenerator (numFrames, onAnimStart, onAnimEnd, updateArgs) {
-        var n   = numFrames,
+        var n   = numFrames <= 0? 1 : numFrames,
             oAS = onAnimStart,
             oAE = onAnimEnd,
             uA  = updateArgs,
@@ -549,7 +547,7 @@ function Animator (framesPerSecond) {
         this.frame = function () {return i_t};
 
         // Returns the percent progress of the frame generator from [0, 1]
-        this.percent = function () {return i_t / n};
+        this.percent = function () {console.log (i_t + ' :: ' + n); return i_t / n};
 
         // Calculates x* for positive to negative symmetric animation direction change
         this.calculateXStar = function (f, isPositiveToNegative) {
