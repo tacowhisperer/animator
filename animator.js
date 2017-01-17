@@ -174,7 +174,7 @@ function Animator (framesPerSecond) {
 
         // Animation values extracted from the animationProps object
         anim.isActive               = typeof animationProps.isActive == 'boolean'? animationProps.isActive : true;
-        anim.animationDirection     = !!animationProps.animateNegatively;
+        anim.animationDirection     = !animationProps.animateNegatively;
         anim.startValue             = animationProps.startValue;
         anim.endValue               = animationProps.endValue;
         anim.interpolator           = animationProps.interpolator;
@@ -547,7 +547,7 @@ function Animator (framesPerSecond) {
         this.frame = function () {return i_t};
 
         // Returns the percent progress of the frame generator from [0, 1]
-        this.percent = function () {console.log (i_t + ' :: ' + n); return i_t / n};
+        this.percent = function () {return i_t / n};
 
         // Calculates x* for positive to negative symmetric animation direction change
         this.calculateXStar = function (f, isPositiveToNegative) {
@@ -576,6 +576,9 @@ function Animator (framesPerSecond) {
         // Generates the next value for i_t. Goes in the direction of the argument fed
         this.next = function (isPositive) {
             if (isNotPaused && isStarted) {
+
+                console.log ('isPositive -> ' + isPositive);
+
                 var dt = (Date.now () - t_i - offset) * (isPositive? FORWARD : BACKWARD);
                 i_t = rk4 (i_t, FPMS, dt);
 

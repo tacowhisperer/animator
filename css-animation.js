@@ -306,8 +306,6 @@ function CSSAnimator (framesPerSecond) {
         // Removes the need to do constant type checks of values see what was given from the user
         var trans = [null, null, null, null];
 
-        console.log (transitions[css]);
-
         // [startValue, endValue, numFrames, easing]
         if (transitions[css].length == 4) {
             trans[START_VALUE] = transitions[css][0];
@@ -353,7 +351,7 @@ function CSSAnimator (framesPerSecond) {
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
             numFrames:     trans[NUM_FRAMES],
-            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {/*console.log(intermittentCSSValue); */el.style[cssProperty] = intermittentCSSValue},
+            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
 
             interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
             onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
