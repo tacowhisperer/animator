@@ -371,8 +371,8 @@ function CSSAnimator (framesPerSecond) {
         }
 
         else if (transitions[css].length == 3) {
-            // [endValue, numFrames, easing]
-            if (typeof transitions[css][2] == 'function') {
+            // [endValue, numFrames, easingName]
+            if (typeof transforms[transitions[css][2]] == 'function') {
                 trans[START_VALUE] = 'current';
                 trans[END_VALUE] = transitions[css][0];
                 trans[NUM_FRAMES] = transitions[css][1];
