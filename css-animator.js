@@ -1,5 +1,44 @@
 /**
- * CSS animator
+ * CSS JavaScript Animator Framework
+ * Tacowhisperer Productions
+ *
+ * This is a framework for making use of the generic animator, animator.js by Tacowhisperer Productions, with CSS in web design.
+ * It allows for more control over how you want to animate the CSS properties of DOM elements, like accelerations, and it allows
+ * for smooth transitions between any two valid CSS colors.
+ *
+ *
+ *
+ * Arguments:
+ *     framesPerSecond - The target fps that all animations will be normalized towards (float or int). If none is given, 60 is
+ *                       used.
+ *
+ *
+ *
+ * Public Methods: (arguments) <method description> [return value]
+ *
+ *     animate - (element, transitions) <Animates the current (or given) CSS properties of element to the target CSS values given
+ *                                       by the transitions object. See below for the transitions object structure> [this object]
+ *
+ *             Valid Transitions Object Structures (cssPropX is a valid CSS property, and "..." means "and so on"):
+ *                 {cssProp0: [startingCSSValue, targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *                 {cssProp0: [startingCSSValue, "current", numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *                 {cssProp0: ["current", targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *                 {cssProp0: [targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *
+ *                 {cssProp0: [startingCSSValue, targetCSSValue, numberOfFrames], cssProp1: [...], ...}
+ *                 {cssProp0: [startingCSSValue, "current", numberOfFrames], cssProp1: [...], ...}
+ *                 {cssProp0: ["current", targetCSSValue, numberOfFrames], cssProp1: [...], ...}
+ *                 {cssProp0: [targetCSSValue, numberOfFrames], cssProp1: [...], ...}
+ *
+ *     stop - (element, cssProperties) <Stops element's cssProperties from animating. Stops all properties if none are given, and
+ *                                      stops all properties of all elements if no arguments are provided.> [this object]
+ *
+ *     pause - (element, cssProperties) <Pauses element's cssProperties animations. Pauses all properties if none are given, and
+ *                                       pauses all properties of all elements if no arguments are provided.> [this object]
+ *
+ *     play - (element, cssProperties) <Plays element's cssProperties animations if paused. Plays all paused properties if none
+ *                                      are given, and plays all paused properties of all elements if no arguments are provided>
+ *                                      [this object]
  */
 function CSSAnimator (framesPerSecond) {
     var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
@@ -247,50 +286,62 @@ function CSSAnimator (framesPerSecond) {
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
     this.stop = function (element, cssProps) {
-        cssAnimatorMethodWorker (element, cssProps || [], 'removeAnimation', function (animationId) {delete animations[animationId]});
+        cssAnimatorMethodWorker (element, cssProps || [], 'removeAnimation', arguments.length, function (animationId) {delete animations[animationId]});
 
         return this;
     };
 
     // Pauses all animations for the given element if it exists in the animator
     this.pause = function (element, cssProps) {
-        cssAnimatorMethodWorker (element, cssProps || [], 'pauseAnimation');
+        cssAnimatorMethodWorker (element, cssProps || [], 'pauseAnimation', arguments.length);
 
         return this;
     };
 
     // Plays all animations for the given element if it exists in the animator
     this.play = function (element, cssProps) {
-        cssAnimatorMethodWorker (element, cssProps || [], 'playAnimation');
+        cssAnimatorMethodWorker (element, cssProps || [], 'playAnimation', arguments.length);
         
         return this;
     };
 
     // Modulates the main work of this.stop, this.pause, and this.play for the CSS Animator object
-    function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callback) {
-        // Only work with elements that have animations in the animator
-        if (element && typeof element.customCSSAnimationIdentification == 'number') {
-            var animationsForElement = animations[element.customCSSAnimationIdentification];
+    function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callerArgsLength, callback) {
+        // The user wanted to use the method only on a specific element
+        if (callerArgsLength > 0) {
+            // Only work with elements that have animations in the animator
+            if (element && !Array.isArray (element) && typeof element.customCSSAnimationIdentification == 'number') 
+                cssAnimatorMethodWorkerWorker (element.customCSSAnimationIdentification);
+        }
+
+        // Assume that the user wanted to perform the method on ALL animations found in the animator
+        else {
+            for (var identification in animations) 
+                cssAnimatorMethodWorkerWorker (identification);
+        }
+
+        // Worker for the worker. Worker-ception.
+        function cssAnimatorMethodWorkerWorker (id) {
+            var animationsForElement = animations[id];
 
             if (animationsForElement) {
                 // Only work with the CSS properties given during method call
                 if (cssProps.length) {
                     for (var i = 0; i < cssProps.length; i++) {
-                        if (animator.hasAnimation (animName (element.customCSSAnimationIdentification, cssProps[i])))
-                            animator[animatorMethodName] (animName (element.customCSSAnimationIdentification, cssProps[i]));
+                        if (animator.hasAnimation (animName (id, cssProps[i])))
+                            animator[animatorMethodName] (animName (id, cssProps[i]));
                     }
                 }
 
                 // Unless none are specified, so work with all of them
                 else {
                     for (var css in animationsForElement) {
-                        if (animator.hasAnimation (animName (element.customCSSAnimationIdentification, css)))
-                            animator[animatorMethodName] (animName (element.customCSSAnimationIdentification, css));
+                        if (animator.hasAnimation (animName (id, css)))
+                            animator[animatorMethodName] (animName (id, css));
                     }
                 }
 
-                if (callback) 
-                    callback (element.customCSSAnimationIdentification)
+                if (callback) callback (id);
             }
         }
     }
