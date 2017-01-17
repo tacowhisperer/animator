@@ -316,8 +316,13 @@ function CSSAnimator (framesPerSecond) {
 
         // Assume that the user wanted to perform the method on ALL animations found in the animator
         else {
-            for (var identification in animations) 
-                cssAnimatorMethodWorkerWorker (identification);
+            var ids = [];
+            for (var identification in animations)
+                ids.push (animations[identification]);
+
+            // Not looping over animations because it's not a good idea to mutate an object that's being iterated over.
+            for (var i = 0; i < ids.length; i++) 
+                cssAnimatorMethodWorkerWorker (ids[i]);
         }
 
         // Worker for the worker. Worker-ception.
@@ -405,8 +410,8 @@ function CSSAnimator (framesPerSecond) {
             updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
 
             interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
-            onAnimationStart: function (el, cssProperty, startVal, e) {el.style[cssProperty] = startVal},
-            onAnimationEnd: function (el, cssProperty, s, endVal) {el.style[cssProperty] = endVal},
+            onAnimationStart: function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
+            onAnimationEnd: function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
             updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE]]
         };
 
@@ -545,10 +550,10 @@ function CSSAnimator (framesPerSecond) {
         // Converts HSL to RGB
         function h2r (hslString) {
             // Hue degree
-            var H = mod (+hslString.match (/\((\s|\t)*\d+(\.\d+)?(\s|\t)*,/)[0].replace (/\(|,/g, ''), 360),
+            var H = mod (+hslString.match (/\((\s|\t)*\d+(\.\d+)?(\s|\t)*,/)[0].replace (/\(|,/g, ''), 360);
 
             // Saturation and lightness
-                SL = hslString.match (/\d+%/g).map (function (p) {return +p.replace ('%', '') / 100}),
+            var SL = hslString.match (/\d+%/g).map (function (p) {return +p.replace ('%', '') / 100}),
                 S = SL[0],
                 L = SL[1];
 
@@ -693,7 +698,7 @@ function CSSAnimator (framesPerSecond) {
 
         redValue = redValue < 0? 0 : redValue;
         greenValue = greenValue < 0? 0 : greenValue;
-        blueValue = blueValue < 0? 0 : greenValue;
+        blueValue = blueValue < 0? 0 : blueValue;
 
         return 'rgba(' + redValue + ',' + greenValue + ',' + blueValue + ',' + alphaValue + ')';
     }
