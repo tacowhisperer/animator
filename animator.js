@@ -1,4 +1,7 @@
 /**
+ * JavaScript Animator
+ * Tacowhisperer Productions
+ *
  * Generic animator object that allows for easy, custom manipulations of values from one state to another. Animations can be tai-
  * lored based on options that can (and must) be provided through an object.
  *
