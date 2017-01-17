@@ -577,8 +577,6 @@ function Animator (framesPerSecond) {
         this.next = function (isPositive) {
             if (isNotPaused && isStarted) {
 
-                console.log ('isPositive -> ' + isPositive);
-
                 var dt = (Date.now () - t_i - offset) * (isPositive? FORWARD : BACKWARD);
                 i_t = rk4 (i_t, FPMS, dt);
 
