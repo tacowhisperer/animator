@@ -258,28 +258,30 @@ function CSSAnimator (framesPerSecond) {
     //     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
     //     transitions = {css0: [endVal, numFrames(, easing)]}
     this.animate = function (element, transitions) {
-        // Generate a unique ID for the new animation if one is not provided when called
-    	if (typeof element.customCSSAnimationIdentification != 'number') {
-        	animationId = idCounter++;
-        	element.customCSSAnimationIdentification = animationId;
-    	}
+        // Make the element and transitions object hard requirements
+        if (element && transitions) {
+            // Generate a unique ID for the new animation if one is not provided when called
+        	if (typeof element.customCSSAnimationIdentification != 'number') {
+            	animationId = idCounter++;
+            	element.customCSSAnimationIdentification = animationId;
+        	}
 
-    	// Allows for the method to be chainable
-    	animationId = element.customCSSAnimationIdentification;
+        	// Allows for the method to be chainable
+        	animationId = element.customCSSAnimationIdentification;
 
-        // Get every animation that is given in the transitions object
-        var animationsForElement = {};
-        for (var css in transitions) {
-            animator.addAnimation (generateAnimationObject (element, transitions, css, animationId));
-            animator.start ();
+            // Get every animation that is given in the transitions object
+            var animationsForElement = {};
+            for (var css in transitions) {
+                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
 
 
-            // Store a shallow copy of the transitions object
-            animationsForElement[css] = transitions[css];
+                // Store a shallow copy of the transitions object
+                animationsForElement[css] = transitions[css];
+            }
+
+            // Update the animations mapped to the element
+            animations[animationId] = animationsForElement;
         }
-
-        // Update the animations mapped to the element
-        animations[animationId] = animationsForElement;
 
         return this;
     };
@@ -318,7 +320,7 @@ function CSSAnimator (framesPerSecond) {
         else {
             var ids = [];
             for (var identification in animations)
-                ids.push (animations[identification]);
+                ids.push (identification);
 
             // Not looping over animations because it's not a good idea to mutate an object that's being iterated over.
             for (var i = 0; i < ids.length; i++) 
@@ -395,6 +397,9 @@ function CSSAnimator (framesPerSecond) {
             trans[NUM_FRAMES] = transitions[css][1];
             trans[EASING] = false;
         }
+
+        // Invalid transitions array
+        else throw 'Invalid transitions object array, [' + transitions[css] + '], given.';
 
         // Because the initial value can be "current", get a valid css property to initialize the object
         var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
