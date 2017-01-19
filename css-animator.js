@@ -443,8 +443,8 @@ function CSSAnimator (framesPerSecond) {
             var v0Unit = v0.match (/\D+$/),
                 v1Unit = v1.match (/\D+$/);
 
-            v0Unit = v0Unit? v0Unit[0] : v0Unit;
-            v1Unit = v1Unit? v1Unit[0] : v1Unit;
+            v0Unit = v0Unit? v0Unit[0] : '';
+            v1Unit = v1Unit? v1Unit[0] : '';
 
             // Units must be of the same type to have any meaning
             if (v0Unit != v1Unit)
