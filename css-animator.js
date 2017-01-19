@@ -440,6 +440,9 @@ function CSSAnimator (framesPerSecond) {
 
         // Both values must be unit measurements of sorts
         else {
+            v0 = '' + v0;
+            v1 = '' + v1;
+
             var v0Unit = v0.match (/\D+$/),
                 v1Unit = v1.match (/\D+$/);
 
@@ -452,8 +455,9 @@ function CSSAnimator (framesPerSecond) {
 
             // Do a linear interpolation of the values and return the value as a string with its unit if one is provided
             else {
-            	var v0Value = +v0.match (/\d+(\.\d+)?/)[0],
-            		v1Value = +v1.match (/\d+(\.\d+)?/)[0];
+            	var numMatch = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i, // https://developer.mozilla.org/en-US/docs/Web/CSS/number
+                    v0Value = +v0.match (numMatch)[0],
+            		v1Value = +v1.match (numMatch)[0];
 
             	return ((1 - q) * v0Value + q * v1Value) + v0Unit;
             }
