@@ -43,7 +43,7 @@
 function CSSAnimator (framesPerSecond) {
     var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
         animator = new Animator (FPS),
-        animationQueue = new Queue (),
+        animQueue = new CSSAnimationQueue (),
 
     	// Used to differentiate between animators
     	cssAnimatorId = uniqueAnimatorIdentification (),
@@ -247,8 +247,9 @@ function CSSAnimator (framesPerSecond) {
             transparent: [0, 0, 0, 0]
         };
 
-    // Used to keep track of animations
-    var idCounter = 0;
+    // Used to keep track of animations and their group numbers if synchronous
+    var idCounter = 0,
+        groupCounter = 0;
 
 
     // Animates the css properties for the document element as defined in the transitions object. Treats
@@ -259,6 +260,8 @@ function CSSAnimator (framesPerSecond) {
     //     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
     //     transitions = {css0: [endVal, numFrames(, easing)]}
     this.animate = function (element, transitions) {
+        var animationId;
+
         // Make the element and transitions object hard requirements
         if (element && transitions) {
             // Generate a unique ID for the new animation if one is not provided when called
@@ -287,9 +290,20 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // 
+    // Same as this.animate, but pushes animations to a queue and waits until the previous group is done to start the next one
     this.thenAnimate = function (element, transitions) {
+        var animationId;
 
+        if (element && transitions) {
+            if (typeof element.customCSSAnimationIdentification != 'number') {
+                animationId = idCounter++;
+                element.customCSSAnimationIdentification = animationId;
+            }
+
+            animationId = element.customCSSAnimationIdentification;
+        }
+
+        return this;
     };
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
@@ -415,7 +429,7 @@ function CSSAnimator (framesPerSecond) {
         var asyncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
         	asyncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
 
-        	// Allows for animations to be sequential
+        	// Allows for animations to be sequential (on an animation queue)
         	syncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
         	syncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal};
 
@@ -735,7 +749,7 @@ function CSSAnimator (framesPerSecond) {
     function uniqueAnimatorIdentification () {return Date.now ()}
 
     /**
-     * Simple queue object. Typically taught in introductory computer science classes
+     * Simple queue object. Typically taught in introductory computer science classes.
      */
     function Queue () {
     	var q = [];
@@ -756,23 +770,53 @@ function CSSAnimator (framesPerSecond) {
 
     		return e;
     	};
+
+        this.get = function (i) {return q[i]};
     }
 
     /**
-     * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function.
+     * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function...
      */
     function CSSAnimationQueue () {
     	var q = new Queue (),
     		animationGroupsContained = {};
 
-    	this.push = function () {
+        this.length = q.length;
 
+        // Points to the transitions group that should be animating right now
+        this.activeGroup = {length: 0, propsFinished: 0, id: -Infinity};
+
+        // Only pushes an animation group to the queue if it has not been added before
+    	this.push = function (transitions, groupId) {
+            // Prevent pushing the animation group to the queue each time a CSS property of the same group is added
+            if (!animationGroupsContained[groupId]) {
+                // Used to know how many animations to wait for a finish (starting is as simple as popping when an animation starts)
+                var numPropertiesToWaitFor = 0;
+
+                for (var cssProperty in transitions)
+                    numPropertiesToWaitFor++;
+
+                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor, propsFinished: 0, id: groupId};
+                q.push ([groupId, transitions]);
+            }
+
+            this.length = q.length;
+
+            return this;
     	};
 
     	this.pop = function () {
     		if (q.length) {
+                var e = q.pop ();
 
+                this.activeGroup = e[1];
+                this.length = q.length;
+                delete animationGroupsContained[e[0]];
     		}
+
+            return this;
     	};
+
+        this.get = function (i) {return q.get (i)};
     }
 }
