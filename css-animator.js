@@ -45,8 +45,8 @@ function CSSAnimator (framesPerSecond) {
         animator = new Animator (FPS),
         animQueue = new CSSAnimationQueue (),
 
-    	// Used to differentiate between animators
-    	cssAnimatorId = uniqueAnimatorIdentification (),
+        // Used to differentiate between animators
+        cssAnimatorId = uniqueAnimatorIdentification (),
 
         // Used to keep track of all animations under an animation ID
         animations = {},
@@ -265,13 +265,13 @@ function CSSAnimator (framesPerSecond) {
         // Make the element and transitions object hard requirements
         if (element && transitions) {
             // Generate a unique ID for the new animation if one is not provided when called
-        	if (typeof element.customCSSAnimationIdentification != 'number') {
-            	animationId = idCounter++;
-            	element.customCSSAnimationIdentification = animationId;
-        	}
+            if (typeof element.customCSSAnimationIdentification != 'number') {
+                animationId = idCounter++;
+                element.customCSSAnimationIdentification = animationId;
+            }
 
-        	// Allows for the method to be chainable
-        	animationId = element.customCSSAnimationIdentification;
+            // Allows for the method to be chainable
+            animationId = element.customCSSAnimationIdentification;
 
             // Get every animation that is given in the transitions object
             var animationsForElement = {};
@@ -423,15 +423,15 @@ function CSSAnimator (framesPerSecond) {
 
         // Because the initial value can be "current", get a valid css property to initialize the object
         var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
-        	currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
+            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
         
         // Assembly of the pieces to make the object to be fed to the animator
         var asyncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
-        	asyncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
+            asyncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
 
-        	// Allows for animations to be sequential (on an animation queue)
-        	syncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
-        	syncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal};
+            // Allows for animations to be sequential (on an animation queue)
+            syncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
+            syncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal};
 
         var animation = {
             animationName: animName (animationId, css),
@@ -478,15 +478,15 @@ function CSSAnimator (framesPerSecond) {
 
             // Units must be of the same type to have any meaning
             if (v0Unit != v1Unit)
-            	throw 'CSS unit type mismatch: "' + v0Unit + '" vs "' + v1Unit + '"';
+                throw 'CSS unit type mismatch: "' + v0Unit + '" vs "' + v1Unit + '"';
 
             // Do a linear interpolation of the values and return the value as a string with its unit if one is provided
             else {
-            	var numMatch = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i, // https://developer.mozilla.org/en-US/docs/Web/CSS/number
+                var numMatch = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i, // https://developer.mozilla.org/en-US/docs/Web/CSS/number
                     v0Value = +v0.match (numMatch)[0],
-            		v1Value = +v1.match (numMatch)[0];
+                    v1Value = +v1.match (numMatch)[0];
 
-            	return ((1 - q) * v0Value + q * v1Value) + v0Unit;
+                return ((1 - q) * v0Value + q * v1Value) + v0Unit;
             }
         }
     }
@@ -752,24 +752,24 @@ function CSSAnimator (framesPerSecond) {
      * Simple queue object. Typically taught in introductory computer science classes.
      */
     function Queue () {
-    	var q = [];
+        var q = [];
 
-    	// Same as array.length
-		this.length = q.length;
+        // Same as array.length
+        this.length = q.length;
 
-    	this.push = function (e) {
-    		q.push (e);
-    		this.length = q.length;
+        this.push = function (e) {
+            q.push (e);
+            this.length = q.length;
 
-    		return this;
-    	};
+            return this;
+        };
 
-    	this.pop = function () {
-    		var e = q.length? q.splice (0, 1)[0] : this;
-    		this.length = q.length;
+        this.pop = function () {
+            var e = q.length? q.splice (0, 1)[0] : this;
+            this.length = q.length;
 
-    		return e;
-    	};
+            return e;
+        };
 
         this.get = function (i) {return q[i]};
     }
@@ -778,8 +778,8 @@ function CSSAnimator (framesPerSecond) {
      * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function...
      */
     function CSSAnimationQueue () {
-    	var q = new Queue (),
-    		animationGroupsContained = {};
+        var q = new Queue (),
+            animationGroupsContained = {};
 
         this.length = q.length;
 
@@ -787,7 +787,7 @@ function CSSAnimator (framesPerSecond) {
         this.activeGroup = {length: 0, propsFinished: 0, id: -Infinity};
 
         // Only pushes an animation group to the queue if it has not been added before
-    	this.push = function (transitions, groupId) {
+        this.push = function (transitions, groupId) {
             // Prevent pushing the animation group to the queue each time a CSS property of the same group is added
             if (!animationGroupsContained[groupId]) {
                 // Used to know how many animations to wait for a finish (starting is as simple as popping when an animation starts)
@@ -803,19 +803,19 @@ function CSSAnimator (framesPerSecond) {
             this.length = q.length;
 
             return this;
-    	};
+        };
 
-    	this.pop = function () {
-    		if (q.length) {
+        this.pop = function () {
+            if (q.length) {
                 var e = q.pop ();
 
                 this.activeGroup = e[1];
                 this.length = q.length;
                 delete animationGroupsContained[e[0]];
-    		}
+            }
 
             return this;
-    	};
+        };
 
         this.get = function (i) {return q.get (i)};
     }
