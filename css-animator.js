@@ -43,6 +43,7 @@
 function CSSAnimator (framesPerSecond) {
     var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
         animator = new Animator (FPS),
+        animationQueue = new Queue (),
 
     	// Used to differentiate between animators
     	cssAnimatorId = uniqueAnimatorIdentification (),
@@ -272,7 +273,7 @@ function CSSAnimator (framesPerSecond) {
             // Get every animation that is given in the transitions object
             var animationsForElement = {};
             for (var css in transitions) {
-                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
+                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId, false)).start ();
 
 
                 // Store a shallow copy of the transitions object
@@ -284,6 +285,11 @@ function CSSAnimator (framesPerSecond) {
         }
 
         return this;
+    };
+
+    // 
+    this.thenAnimate = function (element, transitions) {
+
     };
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
@@ -354,7 +360,7 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Generates an animation object for a given element and properties to animate
-    function generateAnimationObject (element, transitions, css, animationId) {
+    function generateAnimationObject (element, transitions, css, animationId, isSynchronous) {
         // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
             END_VALUE = 1,
@@ -406,6 +412,13 @@ function CSSAnimator (framesPerSecond) {
         	currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
         
         // Assembly of the pieces to make the object to be fed to the animator
+        var asyncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
+        	asyncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
+
+        	// Allows for animations to be sequential
+        	syncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
+        	syncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal};
+
         var animation = {
             animationName: animName (animationId, css),
             startValue:    currentCSSValueStart,
@@ -415,8 +428,8 @@ function CSSAnimator (framesPerSecond) {
             updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
 
             interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
-            onAnimationStart: function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
-            onAnimationEnd: function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
+            onAnimationStart: isSynchronous? syncStart : asyncStart,
+            onAnimationEnd: isSynchronous? syncEnd : asyncEnd,
             updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE]]
         };
 
@@ -720,4 +733,46 @@ function CSSAnimator (framesPerSecond) {
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
     function uniqueAnimatorIdentification () {return Date.now ()}
+
+    /**
+     * Simple queue object. Typically taught in introductory computer science classes
+     */
+    function Queue () {
+    	var q = [];
+
+    	// Same as array.length
+		this.length = q.length;
+
+    	this.push = function (e) {
+    		q.push (e);
+    		this.length = q.length;
+
+    		return this;
+    	};
+
+    	this.pop = function () {
+    		var e = q.length? q.splice (0, 1)[0] : this;
+    		this.length = q.length;
+
+    		return e;
+    	};
+    }
+
+    /**
+     * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function.
+     */
+    function CSSAnimationQueue () {
+    	var q = new Queue (),
+    		animationGroupsContained = {};
+
+    	this.push = function () {
+
+    	};
+
+    	this.pop = function () {
+    		if (q.length) {
+
+    		}
+    	};
+    }
 }
