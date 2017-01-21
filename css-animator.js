@@ -43,16 +43,16 @@
 function CSSAnimator (framesPerSecond) {
     var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
         animator = new Animator (FPS),
-        animQueue = new CSSAnimationQueue (),
+        animationQueue = new CSSAnimationQueue ();
 
-        // Used to differentiate between animators
-        cssAnimatorId = uniqueAnimatorIdentification (),
+    // Used to differentiate between animators
+    const cssAnimatorId = uniqueAnimatorIdentification ();
 
-        // Used to keep track of all animations under an animation ID
-        animations = {},
+    // Used to keep track of all animations under an animation ID
+    var animations = {},
 
-        // The different animation transition types (interpolation transform functions)
-        transforms = {
+    // The different animation transition types (interpolation transform functions)
+    const transforms = {
             linear:            function (x) {return x},
 
             cosine:            function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
@@ -84,10 +84,10 @@ function CSSAnimator (framesPerSecond) {
             'circular-hill':   function (x) {return Math.sqrt (1 - Math.pow (x - 1, 2))},
 
             'circular-valley': function (x) {return 1 - Math.sqrt (1 - x * x)}
-        },
+        };
 
-        // A map of all valid CSS color keywords to their corresponding RGBA array
-        colorMap = {
+    // A map of all valid CSS color keywords to their corresponding RGBA array
+    const colorMap = {
 
             // CSS Level 1
             black:   [  0,   0,   0, 1],
@@ -764,8 +764,8 @@ function CSSAnimator (framesPerSecond) {
             return this;
         };
 
-        this.pop = function () {
-            var e = q.length? q.splice (0, 1)[0] : this;
+        this.pop = function (defaultValue) {
+            var e = q.length? q.splice (0, 1)[0] : arguments.length? defaultValue : this;
             this.length = q.length;
 
             return e;
@@ -778,13 +778,27 @@ function CSSAnimator (framesPerSecond) {
      * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function...
      */
     function CSSAnimationQueue () {
-        var q = new Queue (),
-            animationGroupsContained = {};
+        // Holds a queue of group ID values to preserve the order that they should be animated
+        var q = new Queue ();
+            
+        // Holds all of the group ID values that are currently found in the CSS Animation Queue
+        var animationGroupsContained = {};
 
-        this.length = q.length;
+        // Default value for animations queued up
+        const DEFAULT_GROUP_ID = -Infinity,
+            DEFAULT_ACTIVE_GROUP = {length: 0, propsFinished: 0, id: DEFAULT_GROUP_ID, transitionsObject: {}};
 
-        // Points to the transitions group that should be animating right now
-        this.activeGroup = {length: 0, propsFinished: 0, id: -Infinity};
+        // Add the default group to the groups contained to prevent disaster
+        animationGroupsContained[DEFAULT_GROUP_ID] = DEFAULT_ACTIVE_GROUP;
+
+        // For ease of for-loop use
+        this.length = q.length + 1;
+
+        // Points to the active group object that should be in effect right now
+        this.activeGroup = DEFAULT_ACTIVE_GROUP;
+
+        // Indicates whether the currently active group has changed from the previous pop call
+        this.updatedActiveGroup = false;
 
         // Only pushes an animation group to the queue if it has not been added before
         this.push = function (transitions, groupId) {
@@ -796,27 +810,48 @@ function CSSAnimator (framesPerSecond) {
                 for (var cssProperty in transitions)
                     numPropertiesToWaitFor++;
 
-                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor, propsFinished: 0, id: groupId};
-                q.push ([groupId, transitions]);
+                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor, propsFinished: 0, id: groupId, transitionsObject: transitions};
+                q.push (groupId);
             }
 
-            this.length = q.length;
+            // Prevent mis-alignment issues caused by not updating the length accordingly
+            this.length = q.length + 1;
 
             return this;
         };
 
-        this.pop = function () {
-            if (q.length) {
-                var e = q.pop ();
+        // Pops group values off of the queue if and only if all animations in that group have finished
+        this.pop = function (groupId) {
+            this.updatedActiveGroup = false;
 
-                this.activeGroup = e[1];
-                this.length = q.length;
-                delete animationGroupsContained[e[0]];
+            // Make way for the next group if the previous one was done
+            if (this.activeGroup.length === this.activeGroup.propsFinished) {
+                delete animationGroupsContained[this.activeGroup.id];
+                
+                // Update the active group
+                var prevL = q.length,
+                    gID = q.pop (DEFAULT_GROUP_ID);
+
+                this.activeGroup = isFinite (gID)? animationGroupsContained[gID] : DEFAULT_ACTIVE_GROUP;
+                
+                // Prevent flag from being set to true when the animation queue is consecutively setting the default group value
+                if (prevL) this.updatedActiveGroup = true;
             }
+
+            // Update the counter of animations that have finished animating from the group contained
+            if (this.activeGroup.id === groupId && animationGroupsContained[groupId])
+                animationGroupsContained[groupId].propsFinished++;
+
+            // Prevent mis-alignment issues caused by not updating the length accordingly
+            this.length = q.length + 1;
 
             return this;
         };
 
-        this.get = function (i) {return q.get (i)};
+        // Allows direct access to elements in the queue
+        this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
+
+        // Returns the transitions object of the active group for animation purposes
+        this.activeTransitionsObject = function () {return this.activeGroup.transitionsObject};
     }
 }
