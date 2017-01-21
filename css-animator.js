@@ -248,8 +248,7 @@ function CSSAnimator (framesPerSecond) {
         };
 
     // Used to keep track of animations and their group numbers if synchronous
-    var idCounter = 0,
-        groupCounter = 0;
+    var idCounter = 0;
 
 
     // Animates the css properties for the document element as defined in the transitions object. Treats
@@ -290,9 +289,10 @@ function CSSAnimator (framesPerSecond) {
         return this;
     };
 
-    // Same as this.animate, but pushes animations to a queue and waits until the previous group is done to start the next one
+    // Same as this.animate, but pushes animations to a queue and waits until the previous group is done to start the next anims.
     this.thenAnimate = function (element, transitions) {
-        var animationId;
+        var animationId,
+            groupId;
 
         if (element && transitions) {
             if (typeof element.customCSSAnimationIdentification != 'number') {
@@ -301,6 +301,7 @@ function CSSAnimator (framesPerSecond) {
             }
 
             animationId = element.customCSSAnimationIdentification;
+            groupId = animationQueue.push (element, transitions);
         }
 
         return this;
@@ -781,12 +782,19 @@ function CSSAnimator (framesPerSecond) {
         // Holds a queue of group ID values to preserve the order that they should be animated
         var q = new Queue ();
             
+        // Helps differentiate between animation groups (transitions objects)
+        var groupCounter = 0;
+
         // Holds all of the group ID values that are currently found in the CSS Animation Queue
         var animationGroupsContained = {};
 
         // Default value for animations queued up
         const DEFAULT_GROUP_ID = -Infinity,
-            DEFAULT_ACTIVE_GROUP = {length: 0, propsFinished: 0, id: DEFAULT_GROUP_ID, transitionsObject: {}};
+            DEFAULT_ACTIVE_GROUP = {length: 0, 
+                                    propsFinished: 0, 
+                                    id: DEFAULT_GROUP_ID, 
+                                    transitionsObject: {}, 
+                                    element: document.documentElement};
 
         // Add the default group to the groups contained to prevent disaster
         animationGroupsContained[DEFAULT_GROUP_ID] = DEFAULT_ACTIVE_GROUP;
@@ -801,23 +809,29 @@ function CSSAnimator (framesPerSecond) {
         this.updatedActiveGroup = false;
 
         // Only pushes an animation group to the queue if it has not been added before
-        this.push = function (transitions, groupId) {
+        this.push = function (element, transitions) {
+            var groupId = groupCounter++;
+
             // Prevent pushing the animation group to the queue each time a CSS property of the same group is added
             if (!animationGroupsContained[groupId]) {
-                // Used to know how many animations to wait for a finish (starting is as simple as popping when an animation starts)
+                // Used to know how many animations to wait for finishing off a group animation
                 var numPropertiesToWaitFor = 0;
 
                 for (var cssProperty in transitions)
                     numPropertiesToWaitFor++;
 
-                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor, propsFinished: 0, id: groupId, transitionsObject: transitions};
+                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor,
+                                                     propsFinished: 0,
+                                                     id: groupId,
+                                                     transitionsObject: transitions,
+                                                     element: element};
                 q.push (groupId);
             }
 
             // Prevent mis-alignment issues caused by not updating the length accordingly
             this.length = q.length + 1;
 
-            return this;
+            return groupId;
         };
 
         // Pops group values off of the queue if and only if all animations in that group have finished
