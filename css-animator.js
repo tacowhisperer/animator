@@ -302,6 +302,8 @@ function CSSAnimator (framesPerSecond) {
 
             animationId = element.customCSSAnimationIdentification;
             groupId = animationQueue.push (element, transitions);
+
+            // TODO: Figure out what goes here
         }
 
         return this;
@@ -375,7 +377,7 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Generates an animation object for a given element and properties to animate
-    function generateAnimationObject (element, transitions, css, animationId, isSynchronous) {
+    function generateAnimationObject (element, transitions, css, animationId, isSynchronous, groupId) {
         // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
             END_VALUE = 1,
@@ -427,12 +429,35 @@ function CSSAnimator (framesPerSecond) {
             currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
         
         // Assembly of the pieces to make the object to be fed to the animator
-        var asyncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
-            asyncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
+        var asyncStart = function (el, cssProperty, startVal, e, gN) {
+                             if (startVal !== 'current') 
+                                 el.style[cssProperty] = startVal;
+                         },
+
+            asyncEnd = function (el, cssProperty, s, endVal, gN) {
+                           if (endVal !== 'current') 
+                               el.style[cssProperty] = endVal;
+                       },
 
             // Allows for animations to be sequential (on an animation queue)
-            syncStart = function (el, cssProperty, startVal, e) {if (startVal !== 'current') el.style[cssProperty] = startVal},
-            syncEnd = function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal};
+            syncStart = function (el, cssProperty, startVal, e, groupNumber) {
+                            // Make sure that this animation plays if it is part of the next animation group
+                            consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
+
+                            if (startVal !== 'current') 
+                                el.style[cssProperty] = startVal;
+                        },
+
+            syncEnd = function (el, cssProperty, s, endVal, groupNumber) {
+                          // Remove this animation from the CSS Animation queue
+                          animationQueue.pop (groupNumber);
+
+                          // Consolidate the animation queue with the animator
+                          consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
+
+                          if (endVal !== 'current') 
+                              el.style[cssProperty] = endVal;
+                      };
 
         var animation = {
             animationName: animName (animationId, css),
@@ -440,15 +465,22 @@ function CSSAnimator (framesPerSecond) {
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
             numFrames:     trans[NUM_FRAMES],
-            updater:       function (el, cssProperty, s, e, intermittentCSSValue) {el.style[cssProperty] = intermittentCSSValue},
+            updater:       function (el, cssProperty, s, e, gN, intermittentCSSValue) {
+                               el.style[cssProperty] = intermittentCSSValue;
+                           },
 
             interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
             onAnimationStart: isSynchronous? syncStart : asyncStart,
             onAnimationEnd: isSynchronous? syncEnd : asyncEnd,
-            updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE]]
+            updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE], groupId]
         };
 
         return animation;
+    }
+
+    // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
+    function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
+        // TODO: Figure out what goes here
     }
 
     /**
