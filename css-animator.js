@@ -303,7 +303,7 @@ function CSSAnimator (framesPerSecond) {
             animationId = element.customCSSAnimationIdentification;
             groupId = animationQueue.push (element, transitions);
 
-            // TODO: Figure out what goes here
+            consolidateAnimationQueueAndAnimator (animationQueue, groupId);
         }
 
         return this;
@@ -480,7 +480,14 @@ function CSSAnimator (framesPerSecond) {
 
     // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
     function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
-        // TODO: Figure out what goes here
+        // There was a change in active group, so make the aniimator start playing the next animation group
+        if (animationQueue.updatedActiveGroup) {
+            var queueActiveGroup = animationQueue.activeGroup,
+                element = queueActiveGroup.element,
+                transitions = queueActiveGroup.transitionsObject;
+
+            // TODO: Make the animator do stuff here
+        }
     }
 
     /**
@@ -896,8 +903,5 @@ function CSSAnimator (framesPerSecond) {
 
         // Allows direct access to elements in the queue
         this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
-
-        // Returns the transitions object of the active group for animation purposes
-        this.activeTransitionsObject = function () {return this.activeGroup.transitionsObject};
     }
 }
