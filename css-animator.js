@@ -49,7 +49,7 @@ function CSSAnimator (framesPerSecond) {
     const cssAnimatorId = uniqueAnimatorIdentification ();
 
     // Used to keep track of all animations under an animation ID
-    var animations = {},
+    var animations = {};
 
     // The different animation transition types (interpolation transform functions)
     const transforms = {
@@ -291,17 +291,16 @@ function CSSAnimator (framesPerSecond) {
 
     // Same as this.animate, but pushes animations to a queue and waits until the previous group is done to start the next anims.
     this.thenAnimate = function (element, transitions) {
-        var animationId,
-            groupId;
+        var groupId;
 
         if (element && transitions) {
-            if (typeof element.customCSSAnimationIdentification != 'number') {
-                animationId = idCounter++;
-                element.customCSSAnimationIdentification = animationId;
-            }
-
             animationId = element.customCSSAnimationIdentification;
+
+            console.log ('q before: ' + animationQueue);
+
             groupId = animationQueue.push (element, transitions);
+
+            console.log (' q after: ' + animationQueue + '\n');
 
             consolidateAnimationQueueAndAnimator (animationQueue, groupId);
         }
@@ -441,6 +440,8 @@ function CSSAnimator (framesPerSecond) {
 
             // Allows for animations to be sequential (on an animation queue)
             syncStart = function (el, cssProperty, startVal, e, groupNumber) {
+                            //**Note that animations are not pushed to the queue here because they are pushed in .thenAnimate**//
+
                             // Make sure that this animation plays if it is part of the next animation group
                             consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
 
@@ -460,7 +461,7 @@ function CSSAnimator (framesPerSecond) {
                       };
 
         var animation = {
-            animationName: animName (animationId, css),
+            animationName: isSynchronous? animName (null, css, groupId) : animName (animationId, css),
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
@@ -480,13 +481,31 @@ function CSSAnimator (framesPerSecond) {
 
     // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
     function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
-        // There was a change in active group, so make the aniimator start playing the next animation group
+        // There was a change in active group, so make the animator start playing the next animation group
         if (animationQueue.updatedActiveGroup) {
             var queueActiveGroup = animationQueue.activeGroup,
                 element = queueActiveGroup.element,
-                transitions = queueActiveGroup.transitionsObject;
+                transitions = queueActiveGroup.transitionsObject,
+                groupId = queueActiveGroup.id;
 
-            // TODO: Make the animator do stuff here
+            // Save the group ID if this is the first time that the element is passed to this method
+            if (typeof element.customCSSAnimationGroupIdentification != 'number')
+                element.customCSSAnimationGroupIdentification = groupId;
+
+            // Remove the old animation group from the animator before proceeding to the new animation group
+            else {
+                var oldActiveGroup = animationQueue.previousActiveGroup,
+                    oldElement = oldActiveGroup.element,
+                    oldTransitions = oldActiveGroup.transitionsObject,
+                    oldGroupId = oldActiveGroup.id;
+
+                for (var css in oldTransitions)
+                    animator.removeAnimation (animName (null, css, oldGroupId));
+            }
+
+            // Animate the currently new active group
+            for (var css in transitions)
+                animator.addAnimation (generateAnimationObject (element, transitions, css, null, true, groupId)).start ();
         }
     }
 
@@ -783,7 +802,9 @@ function CSSAnimator (framesPerSecond) {
     function cssAnimatorIdentifier (animationId) {return cssAnimatorId + '-' + animationId}
 
     // Removes the need to keep track of naming conventions
-    function animName (animationId, cssProperty) {return cssAnimatorIdentifier (animationId) + '-' + cssProperty}
+    function animName (animationId, cssProperty, groupId) {
+        return cssAnimatorIdentifier ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
+    }
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
     function uniqueAnimatorIdentification () {return Date.now ()}
@@ -812,6 +833,14 @@ function CSSAnimator (framesPerSecond) {
         };
 
         this.get = function (i) {return q[i]};
+
+        this.toString = function () {
+            var s = '';
+            for (var i = 0; i < q.length; q++)
+                s += i > 0? ', ' + q[i] : q[i];
+
+            return  s;
+        };
     }
 
     /**
@@ -843,6 +872,9 @@ function CSSAnimator (framesPerSecond) {
 
         // Points to the active group object that should be in effect right now
         this.activeGroup = DEFAULT_ACTIVE_GROUP;
+
+        // Points to the group that was active before the currently active group
+        this.previousActiveGroup = DEFAULT_ACTIVE_GROUP;
 
         // Indicates whether the currently active group has changed from the previous pop call
         this.updatedActiveGroup = false;
@@ -879,6 +911,7 @@ function CSSAnimator (framesPerSecond) {
 
             // Make way for the next group if the previous one was done
             if (this.activeGroup.length === this.activeGroup.propsFinished) {
+                this.previousActiveGroup = animationGroupsContained[this.activeGroup.id];
                 delete animationGroupsContained[this.activeGroup.id];
                 
                 // Update the active group
@@ -903,5 +936,11 @@ function CSSAnimator (framesPerSecond) {
 
         // Allows direct access to elements in the queue
         this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
+
+        this.toString = function () {
+            var s = '' + this.activeGroup.id;
+
+            return '[' + s + (q.length? ', ' + q.toString () : '') + ']';
+        };
     }
 }
