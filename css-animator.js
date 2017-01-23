@@ -296,11 +296,15 @@ function CSSAnimator (framesPerSecond) {
         if (element && transitions) {
             animationId = element.customCSSAnimationIdentification;
 
-            console.log ('q before: ' + animationQueue);
+            console.log ('\n>>> q before .thenAnimate: ' + animationQueue);
+            console.log ('    groupId before .thenAnimate: ' + groupId);
 
             groupId = animationQueue.push (element, transitions);
 
-            console.log (' q after: ' + animationQueue + '\n');
+            console.log ('>>>  q after .thenAnimate: ' + animationQueue);
+            console.log ('     groupId after .thenAnimate: ' + groupId);
+            console.log ('>>>  q after .thenAnimate doublecheck: ' + animationQueue);
+            console.log ('     groupId after .thenAnimate doublecheck: ' + groupId);
 
             consolidateAnimationQueueAndAnimator (animationQueue, groupId);
         }
@@ -443,7 +447,9 @@ function CSSAnimator (framesPerSecond) {
                             //**Note that animations are not pushed to the queue here because they are pushed in .thenAnimate**//
 
                             // Make sure that this animation plays if it is part of the next animation group
+                            console.log ('before syncStart: ' + animationQueue);
                             consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
+                            console.log (' after syncStart: ' + animationQueue);
 
                             if (startVal !== 'current') 
                                 el.style[cssProperty] = startVal;
@@ -451,7 +457,9 @@ function CSSAnimator (framesPerSecond) {
 
             syncEnd = function (el, cssProperty, s, endVal, groupNumber) {
                           // Remove this animation from the CSS Animation queue
+                          console.log ('before syncEnd: ' + animationQueue);
                           animationQueue.pop (groupNumber);
+                          console.log (' after syncEnd: ' + animationQueue);
 
                           // Consolidate the animation queue with the animator
                           consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
@@ -481,9 +489,12 @@ function CSSAnimator (framesPerSecond) {
 
     // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
     function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
+        console.log ('\n\nq before consolidationFunction: ' + cssAnimationQueue);
+        console.log ('    consolidationFunction will run: ' + cssAnimationQueue.updatedActiveGroup + '\n');
+
         // There was a change in active group, so make the animator start playing the next animation group
-        if (animationQueue.updatedActiveGroup) {
-            var queueActiveGroup = animationQueue.activeGroup,
+        if (cssAnimationQueue.updatedActiveGroup) {
+            var queueActiveGroup = cssAnimationQueue.activeGroup,
                 element = queueActiveGroup.element,
                 transitions = queueActiveGroup.transitionsObject,
                 groupId = queueActiveGroup.id;
@@ -494,7 +505,7 @@ function CSSAnimator (framesPerSecond) {
 
             // Remove the old animation group from the animator before proceeding to the new animation group
             else {
-                var oldActiveGroup = animationQueue.previousActiveGroup,
+                var oldActiveGroup = cssAnimationQueue.previousActiveGroup,
                     oldElement = oldActiveGroup.element,
                     oldTransitions = oldActiveGroup.transitionsObject,
                     oldGroupId = oldActiveGroup.id;
@@ -507,6 +518,8 @@ function CSSAnimator (framesPerSecond) {
             for (var css in transitions)
                 animator.addAnimation (generateAnimationObject (element, transitions, css, null, true, groupId)).start ();
         }
+
+        console.log ('q after consolidationFunction: ' + cssAnimationQueue);
     }
 
     /**
@@ -816,19 +829,19 @@ function CSSAnimator (framesPerSecond) {
         var qArr = [];
 
         // Same as array.length
-        this.length = q.length;
+        this.length = qArr.length;
 
         this.push = function (e) {
-            console.log ('before push::')
+            console.log ('internal queue before push::');
             console.log (qArr);
             console.log ('');
 
             qArr.push (e);
             this.length = qArr.length;
 
-            console.log ('after push::')
+            console.log (' internal queue after push::')
             console.log (qArr);
-            console.log ('\n');
+            console.log ('');
 
             return this;
         };
@@ -844,10 +857,20 @@ function CSSAnimator (framesPerSecond) {
 
         this.toString = function () {
             var s = '';
-            for (var i = 0; i < qArr.length; qArr++)
+
+            for (var i = 0; i < qArr.length; i++)
                 s += i > 0? ', ' + qArr[i] : qArr[i];
 
             return  s;
+        };
+
+        this.toArray = function () {
+            var qCopy = [];
+
+            for (var i = 0; i < qArr.length; i++)
+                qCopy.push (qArr[i]);
+
+            return qCopy;
         };
     }
 
@@ -946,9 +969,22 @@ function CSSAnimator (framesPerSecond) {
         this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
 
         this.toString = function () {
-            var s = '' + this.activeGroup.id;
+            console.log ('"""" internal q before .toString::');
+            console.log (q.toArray ());
+            // console.log ('internal q toString length before: ' + q.length);
+            // console.log ('internal q toString length before doublecheck: ' + q.length);
+            console.log ('');
 
-            return '[' + s + (q.length? ', ' + q : '') + ']';
+            var s = '' + this.activeGroup.id,
+                ret = '[' + s + (q.length? ', ' + q : '') + ']';
+
+            console.log (' internal q after .toString::');
+            // console.log ('internal q toString length after: ' + q.length);
+            // console.log ('internal q toString length after doublecheck: ' + q.length);
+            console.log (q.toArray ());
+            console.log ('""""');
+
+            return ret;
         };
     }
 }
