@@ -813,31 +813,39 @@ function CSSAnimator (framesPerSecond) {
      * Simple queue object. Typically taught in introductory computer science classes.
      */
     function Queue () {
-        var q = [];
+        var qArr = [];
 
         // Same as array.length
         this.length = q.length;
 
         this.push = function (e) {
-            q.push (e);
-            this.length = q.length;
+            console.log ('before push::')
+            console.log (qArr);
+            console.log ('');
+
+            qArr.push (e);
+            this.length = qArr.length;
+
+            console.log ('after push::')
+            console.log (qArr);
+            console.log ('\n');
 
             return this;
         };
 
         this.pop = function (defaultValue) {
-            var e = q.length? q.splice (0, 1)[0] : arguments.length? defaultValue : this;
-            this.length = q.length;
+            var e = qArr.length? qArr.splice (0, 1)[0] : arguments.length? defaultValue : this;
+            this.length = qArr.length;
 
             return e;
         };
 
-        this.get = function (i) {return q[i]};
+        this.get = function (i) {return qArr[i]};
 
         this.toString = function () {
             var s = '';
-            for (var i = 0; i < q.length; q++)
-                s += i > 0? ', ' + q[i] : q[i];
+            for (var i = 0; i < qArr.length; qArr++)
+                s += i > 0? ', ' + qArr[i] : qArr[i];
 
             return  s;
         };
@@ -940,7 +948,7 @@ function CSSAnimator (framesPerSecond) {
         this.toString = function () {
             var s = '' + this.activeGroup.id;
 
-            return '[' + s + (q.length? ', ' + q.toString () : '') + ']';
+            return '[' + s + (q.length? ', ' + q : '') + ']';
         };
     }
 }
