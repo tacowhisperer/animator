@@ -294,17 +294,15 @@ function CSSAnimator (framesPerSecond) {
         var groupId;
 
         if (element && transitions) {
-            animationId = element.customCSSAnimationIdentification;
-
-            console.log ('\n>>> q before .thenAnimate: ' + animationQueue);
-            console.log ('    groupId before .thenAnimate: ' + groupId);
+            // console.log ('\n>>> q before .thenAnimate: ' + animationQueue);
+            // console.log ('    groupId before .thenAnimate: ' + groupId);
 
             groupId = animationQueue.push (element, transitions);
 
-            console.log ('>>>  q after .thenAnimate: ' + animationQueue);
-            console.log ('     groupId after .thenAnimate: ' + groupId);
-            console.log ('>>>  q after .thenAnimate doublecheck: ' + animationQueue);
-            console.log ('     groupId after .thenAnimate doublecheck: ' + groupId);
+            // console.log ('>>>  q after .thenAnimate: ' + animationQueue);
+            // console.log ('     groupId after .thenAnimate: ' + groupId);
+            // console.log ('>>>  q after .thenAnimate doublecheck: ' + animationQueue);
+            // console.log ('     groupId after .thenAnimate doublecheck: ' + groupId);
 
             consolidateAnimationQueueAndAnimator (animationQueue, groupId);
         }
@@ -447,9 +445,9 @@ function CSSAnimator (framesPerSecond) {
                             //**Note that animations are not pushed to the queue here because they are pushed in .thenAnimate**//
 
                             // Make sure that this animation plays if it is part of the next animation group
-                            console.log ('before syncStart: ' + animationQueue);
+                            // console.log ('before syncStart: ' + animationQueue);
                             consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
-                            console.log (' after syncStart: ' + animationQueue);
+                            // console.log (' after syncStart: ' + animationQueue);
 
                             if (startVal !== 'current') 
                                 el.style[cssProperty] = startVal;
@@ -457,9 +455,9 @@ function CSSAnimator (framesPerSecond) {
 
             syncEnd = function (el, cssProperty, s, endVal, groupNumber) {
                           // Remove this animation from the CSS Animation queue
-                          console.log ('before syncEnd: ' + animationQueue);
+                          // console.log ('before syncEnd: ' + animationQueue);
                           animationQueue.pop (groupNumber);
-                          console.log (' after syncEnd: ' + animationQueue);
+                          // console.log (' after syncEnd: ' + animationQueue);
 
                           // Consolidate the animation queue with the animator
                           consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
@@ -489,8 +487,8 @@ function CSSAnimator (framesPerSecond) {
 
     // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
     function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
-        console.log ('\n\nq before consolidationFunction: ' + cssAnimationQueue);
-        console.log ('    consolidationFunction will run: ' + cssAnimationQueue.updatedActiveGroup + '\n');
+        // console.log ('\n\nq before consolidationFunction: ' + cssAnimationQueue);
+        // console.log ('    consolidationFunction will run: ' + cssAnimationQueue.updatedActiveGroup + '\n');
 
         // There was a change in active group, so make the animator start playing the next animation group
         if (cssAnimationQueue.updatedActiveGroup) {
@@ -519,7 +517,7 @@ function CSSAnimator (framesPerSecond) {
                 animator.addAnimation (generateAnimationObject (element, transitions, css, null, true, groupId)).start ();
         }
 
-        console.log ('q after consolidationFunction: ' + cssAnimationQueue);
+        // console.log ('q after consolidationFunction: ' + cssAnimationQueue);
     }
 
     /**
@@ -832,16 +830,16 @@ function CSSAnimator (framesPerSecond) {
         this.length = qArr.length;
 
         this.push = function (e) {
-            console.log ('internal queue before push::');
-            console.log (qArr);
-            console.log ('');
+            // console.log ('internal queue before push::');
+            // console.log (qArr);
+            // console.log ('');
 
             qArr.push (e);
             this.length = qArr.length;
 
-            console.log (' internal queue after push::')
-            console.log (qArr);
-            console.log ('');
+            // console.log (' internal queue after push::')
+            // console.log (qArr);
+            // console.log ('');
 
             return this;
         };
@@ -928,6 +926,10 @@ function CSSAnimator (framesPerSecond) {
                                                      transitionsObject: transitions,
                                                      element: element};
                 q.push (groupId);
+
+                // Remove the default active group if it is the one currently active
+                if (this.activeGroup.id === DEFAULT_GROUP_ID)
+                    this.pop (DEFAULT_GROUP_ID);
             }
 
             // Prevent mis-alignment issues caused by not updating the length accordingly
@@ -969,20 +971,20 @@ function CSSAnimator (framesPerSecond) {
         this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
 
         this.toString = function () {
-            console.log ('"""" internal q before .toString::');
-            console.log (q.toArray ());
+            // console.log ('"""" internal q before .toString::');
+            // console.log (q.toArray ());
             // console.log ('internal q toString length before: ' + q.length);
             // console.log ('internal q toString length before doublecheck: ' + q.length);
-            console.log ('');
+            // console.log ('');
 
             var s = '' + this.activeGroup.id,
                 ret = '[' + s + (q.length? ', ' + q : '') + ']';
 
-            console.log (' internal q after .toString::');
+            // console.log (' internal q after .toString::');
             // console.log ('internal q toString length after: ' + q.length);
             // console.log ('internal q toString length after doublecheck: ' + q.length);
-            console.log (q.toArray ());
-            console.log ('""""');
+            // console.log (q.toArray ());
+            // console.log ('""""');
 
             return ret;
         };
