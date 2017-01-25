@@ -43,7 +43,7 @@
 function CSSAnimator (framesPerSecond) {
     var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
         animator = new Animator (FPS),
-        animationQueue = new CSSAnimationQueue ();
+        cssAnimationQueue = new CSSAnimationQueue ();
 
     // Used to differentiate between animators
     const cssAnimatorId = uniqueAnimatorIdentification ();
@@ -53,37 +53,89 @@ function CSSAnimator (framesPerSecond) {
 
     // The different animation transition types (interpolation transform functions)
     const transforms = {
-            linear:            function (x) {return x},
 
-            cosine:            function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
+            // The value in is the value out. Simple.
+            linear:             function (x) {return x},
 
-            poly3:             function (x) {var c = 3, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
 
-            root3:             function (x) {var c = 3, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
 
-            poly5:             function (x) {var c = 5, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
+            // Slower, gentle start to faster than linear halfway to slower, gentle finish
+            cosine:             function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
 
-            root5:             function (x) {var c = 5, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
 
-            poly7:             function (x) {var c = 7, k = Math.pow (2, c - 1); return k * Math.pow (x - 1 / 2, c) + 1 / 2},
 
-            root7:             function (x) {var c = 7, k = Math.pow (2, (1 - c) / c); return x <= 0.5? -k * Math.pow (1 / 2 - x, 1 / c) + 1 / 2 : k * Math.pow (x - 1 / 2, 1 / c) + 1 / 2},
+            // Slower than linear start to sudden spike halfway to slower than linear finish
+            poly3:              function (x) {
+                                    var c = 3, k = Math.pow (2, c - 1), H = 1 / 2;
 
-            'exp-hard':        function (x) {return (1 - Math.exp (9 * x)) / (1 - Math.exp (9))},
+                                    return k * Math.pow (x - H, c) + H;
+                                },
 
-            'exp-medium':      function (x) {return (1 - Math.exp (4 * x)) / (1 - Math.exp (4))},
+            // Faster than linear start to sudden slowness halfway to faster than linear finish
+            root3:              function (x) {
+                                    var c = 3, k = Math.pow (2, (1 - c) / c), H = 1 / 2;
 
-            'exp-soft':        function (x) {return (1 - Math.exp (x)) / (1 - Math.E)},
+                                    return x <= H? -k * Math.pow (H - x, 1 / c) + H : k * Math.pow (x - H, 1 / c) + H;
+                                },
 
-            '-exp-hard':       function (x) {return (1 - Math.exp (-9 * x)) / (1 - Math.exp (-9))},
+            // Same as poly3, but more intense
+            poly5:              function (x) {
+                                    var c = 5, k = Math.pow (2, c - 1), H = 1 / 2;
 
-            '-exp-medium':     function (x) {return (1 - Math.exp (-4 * x)) / (1 - Math.exp (-4))},
+                                    return k * Math.pow (x - H, c) + H;
+                                },
 
-            '-exp-soft':       function (x) {return (1 - Math.exp (-x)) / (1 - Math.exp (-1))},
+            // Same as root3, but more intense
+            root5:              function (x) {
+                                    var c = 5, k = Math.pow (2, (1 - c) / c), H = 1 / 2;
 
-            'circular-hill':   function (x) {return Math.sqrt (1 - Math.pow (x - 1, 2))},
+                                    return x <= H? -k * Math.pow (H - x, 1 / c) + H : k * Math.pow (x - H, 1 / c) + H;
+                                },
 
-            'circular-valley': function (x) {return 1 - Math.sqrt (1 - x * x)}
+            // Same as poly5, but more intense
+            poly7:              function (x) {
+                                    var c = 7, k = Math.pow (2, c - 1), H = 1 / 2;
+
+                                    return k * Math.pow (x - H, c) + H;
+                                },
+
+            // Same as root5, but more intense
+            root7:              function (x) {
+                                    var c = 7, k = Math.pow (2, (1 - c) / c), H = 1 / 2;
+
+                                    return x <= H? -k * Math.pow (H - x, 1 / c) + H : k * Math.pow (x - H, 1 / c) + H
+                                },
+
+            // Super slow, gentle start, then sudden spike to finish
+            'exp-hard':         function (x) {return (1 - Math.exp (9 * x)) / (1 - Math.exp (9))},
+
+
+            // Like 'exp-hard', but less intense
+            'exp-medium':       function (x) {return (1 - Math.exp (4 * x)) / (1 - Math.exp (4))},
+
+
+            // Like 'exp-medium', but less intense
+            'exp-soft':         function (x) {return (1 - Math.exp (x)) / (1 - Math.E)},
+
+
+            // Super fast, abrupt start, then sudden drop to a gentle finish
+            '-exp-hard':        function (x) {return (1 - Math.exp (-9 * x)) / (1 - Math.exp (-9))},
+
+
+            // Like '-exp-hard', but less intense
+            '-exp-medium':      function (x) {return (1 - Math.exp (-4 * x)) / (1 - Math.exp (-4))},
+
+
+            // Like '-exp-medium', but less intense
+            '-exp-soft':        function (x) {return (1 - Math.exp (-x)) / (1 - Math.exp (-1))},
+
+
+            // Like '-exp-medium', but there is no sudden transition in speed from fast to slow
+            'circular-hill':    function (x) {return Math.sqrt (1 - Math.pow (x - 1, 2))},
+
+
+            // Like 'exp-medium', but there is no sudden transition in speed from slow to fast
+            'circular-valley':  function (x) {return 1 - Math.sqrt (1 - x * x)}
         };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
@@ -251,13 +303,15 @@ function CSSAnimator (framesPerSecond) {
     var idCounter = 0;
 
 
-    // Animates the css properties for the document element as defined in the transitions object. Treats
-    // each animation like it is a new one (thus allowing smooth back-and-forth animations)
-
-    // Transitions object format:
-    //     transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
-    //     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
-    //     transitions = {css0: [endVal, numFrames(, easing)]}
+    /**
+     * Animates the css properties for the document element as defined in the transitions object. Treats
+     * each animation like it is a new one (thus allowing smooth back-and-forth animations)
+     *
+     * Transitions object format:
+     *     transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
+     *     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
+     *     transitions = {css0: [endVal, numFrames(, easing)]}
+     */
     this.animate = function (element, transitions) {
         var animationId;
 
@@ -294,17 +348,7 @@ function CSSAnimator (framesPerSecond) {
         var groupId;
 
         if (element && transitions) {
-            // console.log ('\n>>> q before .thenAnimate: ' + animationQueue);
-            // console.log ('    groupId before .thenAnimate: ' + groupId);
 
-            groupId = animationQueue.push (element, transitions);
-
-            // console.log ('>>>  q after .thenAnimate: ' + animationQueue);
-            // console.log ('     groupId after .thenAnimate: ' + groupId);
-            // console.log ('>>>  q after .thenAnimate doublecheck: ' + animationQueue);
-            // console.log ('     groupId after .thenAnimate doublecheck: ' + groupId);
-
-            consolidateAnimationQueueAndAnimator (animationQueue, groupId);
         }
 
         return this;
@@ -312,7 +356,11 @@ function CSSAnimator (framesPerSecond) {
 
     // Stops all animations of the element like jQuery.stop () by removing the animations from the animator
     this.stop = function (element, cssProps) {
-        cssAnimatorMethodWorker (element, cssProps || [], 'removeAnimation', arguments.length, function (animationId) {delete animations[animationId]});
+        cssAnimatorMethodWorker (element,
+                                 cssProps || [],
+                                 'removeAnimation',
+                                 arguments.length,
+                                 function (animationId) {delete animations[animationId]});
 
         return this;
     };
@@ -423,7 +471,7 @@ function CSSAnimator (framesPerSecond) {
         }
 
         // Invalid transitions array
-        else throw 'Invalid transitions object array, [' + transitions[css] + '], given.';
+        else throw 'Invalid transitions object array, [' + ('' + transitions[css]).replace (/\s*,\s*/g, ', ') + '], given.';
 
         // Because the initial value can be "current", get a valid css property to initialize the object
         var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
@@ -442,26 +490,11 @@ function CSSAnimator (framesPerSecond) {
 
             // Allows for animations to be sequential (on an animation queue)
             syncStart = function (el, cssProperty, startVal, e, groupNumber) {
-                            //**Note that animations are not pushed to the queue here because they are pushed in .thenAnimate**//
-
-                            // Make sure that this animation plays if it is part of the next animation group
-                            // console.log ('before syncStart: ' + animationQueue);
-                            consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
-                            // console.log (' after syncStart: ' + animationQueue);
-
                             if (startVal !== 'current') 
                                 el.style[cssProperty] = startVal;
                         },
 
             syncEnd = function (el, cssProperty, s, endVal, groupNumber) {
-                          // Remove this animation from the CSS Animation queue
-                          // console.log ('before syncEnd: ' + animationQueue);
-                          animationQueue.pop (groupNumber);
-                          // console.log (' after syncEnd: ' + animationQueue);
-
-                          // Consolidate the animation queue with the animator
-                          consolidateAnimationQueueAndAnimator (animationQueue, groupNumber);
-
                           if (endVal !== 'current') 
                               el.style[cssProperty] = endVal;
                       };
@@ -483,41 +516,6 @@ function CSSAnimator (framesPerSecond) {
         };
 
         return animation;
-    }
-
-    // Works with the animation queue and animator to consolidate which animation group should be updating at any given time
-    function consolidateAnimationQueueAndAnimator (cssAnimationQueue, groupId) {
-        // console.log ('\n\nq before consolidationFunction: ' + cssAnimationQueue);
-        // console.log ('    consolidationFunction will run: ' + cssAnimationQueue.updatedActiveGroup + '\n');
-
-        // There was a change in active group, so make the animator start playing the next animation group
-        if (cssAnimationQueue.updatedActiveGroup) {
-            var queueActiveGroup = cssAnimationQueue.activeGroup,
-                element = queueActiveGroup.element,
-                transitions = queueActiveGroup.transitionsObject,
-                groupId = queueActiveGroup.id;
-
-            // Save the group ID if this is the first time that the element is passed to this method
-            if (typeof element.customCSSAnimationGroupIdentification != 'number')
-                element.customCSSAnimationGroupIdentification = groupId;
-
-            // Remove the old animation group from the animator before proceeding to the new animation group
-            else {
-                var oldActiveGroup = cssAnimationQueue.previousActiveGroup,
-                    oldElement = oldActiveGroup.element,
-                    oldTransitions = oldActiveGroup.transitionsObject,
-                    oldGroupId = oldActiveGroup.id;
-
-                for (var css in oldTransitions)
-                    animator.removeAnimation (animName (null, css, oldGroupId));
-            }
-
-            // Animate the currently new active group
-            for (var css in transitions)
-                animator.addAnimation (generateAnimationObject (element, transitions, css, null, true, groupId)).start ();
-        }
-
-        // console.log ('q after consolidationFunction: ' + cssAnimationQueue);
     }
 
     /**
@@ -830,22 +828,23 @@ function CSSAnimator (framesPerSecond) {
         this.length = qArr.length;
 
         this.push = function (e) {
-            // console.log ('internal queue before push::');
-            // console.log (qArr);
-            // console.log ('');
-
             qArr.push (e);
-            this.length = qArr.length;
 
-            // console.log (' internal queue after push::')
-            // console.log (qArr);
-            // console.log ('');
+            this.length = qArr.length;
 
             return this;
         };
 
         this.pop = function (defaultValue) {
-            var e = qArr.length? qArr.splice (0, 1)[0] : arguments.length? defaultValue : this;
+            var e;
+            if (qArr.length)
+                e = qArr.splice (0, 1)[0];
+
+            else if (arguments.length)
+                e = defaultValue;
+
+            else throw 'Error! Cannot pop from an empty queue.';
+
             this.length = qArr.length;
 
             return e;
@@ -861,132 +860,51 @@ function CSSAnimator (framesPerSecond) {
 
             return  s;
         };
-
-        this.toArray = function () {
-            var qCopy = [];
-
-            for (var i = 0; i < qArr.length; i++)
-                qCopy.push (qArr[i]);
-
-            return qCopy;
-        };
     }
 
-    /**
-     * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function...
-     */
     function CSSAnimationQueue () {
-        // Holds a queue of group ID values to preserve the order that they should be animated
-        var q = new Queue ();
-            
-        // Helps differentiate between animation groups (transitions objects)
-        var groupCounter = 0;
 
-        // Holds all of the group ID values that are currently found in the CSS Animation Queue
-        var animationGroupsContained = {};
+    }
 
-        // Default value for animations queued up
-        const DEFAULT_GROUP_ID = -Infinity,
-            DEFAULT_ACTIVE_GROUP = {length: 0, 
-                                    propsFinished: 0, 
-                                    id: DEFAULT_GROUP_ID, 
-                                    transitionsObject: {}, 
-                                    element: document.documentElement};
+    function AnimationGroup (element, transitions, groupId) {
+        var id = groupId,
+            el = element,
+            trans = transitions;
 
-        // Add the default group to the groups contained to prevent disaster
-        animationGroupsContained[DEFAULT_GROUP_ID] = DEFAULT_ACTIVE_GROUP;
 
-        // For ease of for-loop use
-        this.length = q.length + 1;
+        var numCSSProperties = 0,
+            numCSSPropertiesDone = 0;
 
-        // Points to the active group object that should be in effect right now
-        this.activeGroup = DEFAULT_ACTIVE_GROUP;
+        // Count the number of css properties in the transtions object to know when it is finished
+        for (var css in transitions) numCSSProperties++;
 
-        // Points to the group that was active before the currently active group
-        this.previousActiveGroup = DEFAULT_ACTIVE_GROUP;
 
-        // Indicates whether the currently active group has changed from the previous pop call
-        this.updatedActiveGroup = false;
+        var isActivated = false;
 
-        // Only pushes an animation group to the queue if it has not been added before
-        this.push = function (element, transitions) {
-            var groupId = groupCounter++;
+        const STATUS_CLOSED = 'closed',
+            STATUS_WORKING  = 'working',
+            STATUS_FINISHED = 'finished';
 
-            // Prevent pushing the animation group to the queue each time a CSS property of the same group is added
-            if (!animationGroupsContained[groupId]) {
-                // Used to know how many animations to wait for finishing off a group animation
-                var numPropertiesToWaitFor = 0;
+        this.status = STATUS_CLOSED;
 
-                for (var cssProperty in transitions)
-                    numPropertiesToWaitFor++;
-
-                animationGroupsContained[groupId] = {length: numPropertiesToWaitFor,
-                                                     propsFinished: 0,
-                                                     id: groupId,
-                                                     transitionsObject: transitions,
-                                                     element: element};
-                q.push (groupId);
-
-                // Remove the default active group if it is the one currently active
-                if (this.activeGroup.id === DEFAULT_GROUP_ID)
-                    this.pop (DEFAULT_GROUP_ID);
-            }
-
-            // Prevent mis-alignment issues caused by not updating the length accordingly
-            this.length = q.length + 1;
-
-            return groupId;
-        };
-
-        // Pops group values off of the queue if and only if all animations in that group have finished
-        this.pop = function (groupId) {
-            this.updatedActiveGroup = false;
-
-            // Make way for the next group if the previous one was done
-            if (this.activeGroup.length === this.activeGroup.propsFinished) {
-                this.previousActiveGroup = animationGroupsContained[this.activeGroup.id];
-                delete animationGroupsContained[this.activeGroup.id];
-                
-                // Update the active group
-                var prevL = q.length,
-                    gID = q.pop (DEFAULT_GROUP_ID);
-
-                this.activeGroup = isFinite (gID)? animationGroupsContained[gID] : DEFAULT_ACTIVE_GROUP;
-                
-                // Prevent flag from being set to true when the animation queue is consecutively setting the default group value
-                if (prevL) this.updatedActiveGroup = true;
-            }
-
-            // Update the counter of animations that have finished animating from the group contained
-            if (this.activeGroup.id === groupId && animationGroupsContained[groupId])
-                animationGroupsContained[groupId].propsFinished++;
-
-            // Prevent mis-alignment issues caused by not updating the length accordingly
-            this.length = q.length + 1;
+        // Activates the group so that the internal counter may be updated without consequenses
+        this.activate = function () {
+            isActivated = true;
+            this.status = STATUS_WORKING;
 
             return this;
         };
 
-        // Allows direct access to elements in the queue
-        this.get = function (i) {return i === 0? this.activeGroup.id : q.get (i - 1)};
+        // Updates the counter of CSS properties that have finished and sets the status appropriately
+        this.finishAnimation = function () {
+            if (isActivated) {
+                numCSSPropertiesDone++;
 
-        this.toString = function () {
-            // console.log ('"""" internal q before .toString::');
-            // console.log (q.toArray ());
-            // console.log ('internal q toString length before: ' + q.length);
-            // console.log ('internal q toString length before doublecheck: ' + q.length);
-            // console.log ('');
+                if (numCSSPropertiesDone === numCSSProperties)
+                    this.status = STATUS_FINISHED;
+            }
 
-            var s = '' + this.activeGroup.id,
-                ret = '[' + s + (q.length? ', ' + q : '') + ']';
-
-            // console.log (' internal q after .toString::');
-            // console.log ('internal q toString length after: ' + q.length);
-            // console.log ('internal q toString length after doublecheck: ' + q.length);
-            // console.log (q.toArray ());
-            // console.log ('""""');
-
-            return ret;
+            else throw 'Attempted to update AnimationGroup#' + id + ' before active. Check the animation queue.';
         };
     }
 }
