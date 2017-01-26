@@ -827,89 +827,167 @@ function CSSAnimator (framesPerSecond) {
      * Simple queue object. Typically taught in introductory computer science classes.
      */
     function Queue () {
-        var qArr = [];
+        var queueArray = [];
 
         // Same as array.length
-        this.length = qArr.length;
+        this.length = queueArray.length;
 
         this.push = function (e) {
-            qArr.push (e);
+            queueArray.push (e);
 
-            this.length = qArr.length;
+            this.length = queueArray.length;
 
             return this;
         };
 
         this.pop = function (defaultValue) {
             var e;
-            if (qArr.length)
-                e = qArr.splice (0, 1)[0];
+            if (queueArray.length)
+                e = queueArray.splice (0, 1)[0];
 
             else if (arguments.length)
                 e = defaultValue;
 
             else throw 'Error! Cannot pop from an empty queue.';
 
-            this.length = qArr.length;
+            this.length = queueArray.length;
 
             return e;
         };
 
-        this.get = function (i) {return qArr[i]};
+        this.get = function (i) {return queueArray[i]};
 
         this.toString = function () {
             var s = '';
 
-            for (var i = 0; i < qArr.length; i++)
-                s += i > 0? ', ' + qArr[i] : qArr[i];
+            for (var i = 0; i < queueArray.length; i++)
+                s += i > 0? ', ' + queueArray[i] : queueArray[i];
 
             return  s;
         };
     }
 
-    function CSSAnimationQueue () {
+    function CSSAnimationQueue (queueLimit) {
+        // Without a queue, you can't call it a queue
+        var queueObject = new Queue ();
 
-    }
+        // Used to help tailor the number of animatios in the queue if memory might be an issue
+        const limit = arguments.length > 0? queueLimit <= 0? 1 : Math.ceil (queueLimit) : Infinity;
 
-    function AnimationGroup (element, transitions, groupId) {
-        var id = groupId,
-            el = element,
-            trans = transitions;
+        // Used to keep track of groupId values
+        var groupIdValue = 0;
 
+        // Used to differentiate between animation queues
+        const queueId = uniqueAnimationQueueIdentification ();
 
-        var numCSSProperties = 0,
-            numCSSPropertiesDone = 0;
+        // Used internally for bookeeping animation group statuses
+        const ANIMATIONG_GROUP_STATUS_CLOSED = 'closed',
+              ANIMATIONG_GROUP_STATUS_WORKING  = 'working',
+              ANIMATIONG_GROUP_STATUS_FINISHED = 'finished';
 
-        // Count the number of css properties in the transtions object to know when it is finished
-        for (var css in transitions) numCSSProperties++;
+        // Lets external functions operate directly on whatever transitions group should be active
+        this.activeAnimationGroup = false;
 
+        // Lets external functions remove the old active animation group from the animator
+        this.previousAnimationGroup = false;
 
-        var isActivated = false;
+        // Flag that lets external functions know whether the animator should be updated on the active animation group or not.
+        this.updateAnimator = false;
 
-        const STATUS_CLOSED = 'closed',
-            STATUS_WORKING  = 'working',
-            STATUS_FINISHED = 'finished';
+        // Initialize as queue length because false active group does not count. However, will generally be queue length + 1.
+        this.length = 0 + queueObject.length;
 
-        this.status = STATUS_CLOSED;
+        this.push = function (element, transitions) {
+            var groupId = uniqueGroupIDValue (),
+                animationGroup = new AnimationGroup (element, transitions, groupId);
 
-        // Activates the group so that the internal counter may be updated without consequenses
-        this.activate = function () {
-            isActivated = true;
-            this.status = STATUS_WORKING;
+            // Handle the 2 cases where there is nothing in the queue
+            if (queueObject.length === 0) {
+                if (this.activeAnimationGroup) {
+                    this.updateAnimator = false;
 
-            return this;
-        };
+                    if (this.length + 1 > limit) // TODO: Finish implementing queue limit here
+                    queueObject.push (animationGroup);
+                }
 
-        // Updates the counter of CSS properties that have finished and sets the status appropriately
-        this.finishAnimation = function () {
-            if (isActivated) {
-                numCSSPropertiesDone++;
-
-                if (numCSSPropertiesDone === numCSSProperties)
-                    this.status = STATUS_FINISHED;
+                else {
+                    animationGroup.activate ();
+                    this.updateAnimator = true;
+                    this.activeAnimationGroup = animationGroup;
+                }
             }
 
-            else throw 'Attempted to update AnimationGroup#' + id + ' before active. Check the animation queue.';
+            // Do standard queue business otherwise
+            else {
+
+            }
+
+            // Update the length to reflect the number of animation groups in the queue, plus the active one
+            this.length = 1 + queueObject.length;
+            return groupId;
         };
-    }
+
+        this.pop = function (groupId) {
+
+        };
+
+        // Used just in case any implementation might need more than one animation queue at a time
+        function uniqueAnimationQueueIdentification () {return Date.now ()}
+    
+        // Used to uniquely generate a group ID value for every animation group stored in the Animation Queue
+        function uniqueGroupIDValue () {return queueId + '-' + (groupIdValue++)}
+
+        /**
+         * Helps abstract away some of the bookeeping necessary to keep the queue in order
+         */
+        function AnimationGroup (element, transitions, groupId) {
+            var id = groupId,
+                el = element,
+                trans = transitions;
+
+            // Counters used for determining animation group completion
+            var numCSSProperties = 0,
+                numCSSPropertiesDone = 0;
+
+            // Count the number of css properties in the transtions object to know when it is finished
+            for (var css in transitions) numCSSProperties++;
+
+            // Prevents counters from being updated if it is not this animation group's turn on the queue
+            var isActivated = false;
+
+            
+            // Publicly check the current animation's status
+            this.status = ANIMATIONG_GROUP_STATUS_CLOSED;
+
+            // Activates the group so that the internal counter may be updated without consequenses
+            this.activate = function () {
+                isActivated = true;
+                this.status = ANIMATIONG_GROUP_STATUS_WORKING;
+
+                return this;
+            };
+
+            // Updates the counter of CSS properties that have finished and sets the status appropriately
+            this.finishAnimation = function () {
+                if (isActivated) {
+                    numCSSPropertiesDone++;
+
+                    if (numCSSPropertiesDone === numCSSProperties)
+                        this.status = ANIMATIONG_GROUP_STATUS_FINISHED;
+                }
+
+                else throw 'Attempted to update AnimationGroup#' + id + ' before active. Check the animation queue.';
+
+                return this;
+            };
+
+            // Getters for values fed during construction
+            this.getElement = function () {return el}
+            this.getTransitions = function () {return trans};
+            this.getGroupId = function () {return id};
+
+            // Used for debugging
+            this.toString = function () {return 'AnimationGroup#' + id};
+        }
+    }   
 }
