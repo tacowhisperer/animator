@@ -60,7 +60,12 @@ function CSSAnimator (framesPerSecond) {
 
 
             // Slower, gentle start to faster than linear halfway to slower, gentle finish
-            cosine:             function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
+            trig:               function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
+
+
+
+            // Fast, sudden start to slower than linear halfway to fast, sudden finish
+            arctrig:            function (x) {return Math.asin (2 * x - 1) / Math.PI + 0.5},
 
 
 
