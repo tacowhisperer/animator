@@ -356,7 +356,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         if (element && transitions) {
             groupId = cssAnimationQueue.push (element, transitions);
-            updateAnimatorOnTheAnimationQueue ();
+
+            // Update the animator on the new active group
+            if (cssAnimationQueue.updateAnimator)
+                updateAnimatorOnTheAnimationQueue ();
         }
 
         return this;
@@ -454,13 +457,25 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             endValue:      currentCSSValueEnd,
             interpolator:  cssInterpolate,
             numFrames:     trans[NUM_FRAMES],
-            updater:       function (el, cssProperty, s, e, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
+            updater:       function (el, cssProperty, s, e, id, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
 
             interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
 
-            onAnimationStart: function (el, cssProperty, sVal, e) {if (sVal !== 'current') el.style[cssProperty] = sVal},
-            onAnimationEnd:   function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
-            updateArguments:  [element, css, trans[START_VALUE], trans[END_VALUE]]
+            onAnimationStart: function (el, cssProperty, sVal, e, id) {
+                if (sVal !== 'current') el.style[cssProperty] = sVal;
+
+                // Prevents regular animation calls from overriding enqueued animation calls
+                animator.playAnimation (animName (id, cssProperty));
+            },
+
+            onAnimationEnd:   function (el, cssProperty, s, endVal, id) {
+                if (endVal !== 'current') el.style[cssProperty] = endVal;
+
+                // Prevents regular animation calls from overriding enqueued animation calls
+                animator.pauseAnimation (animName (id, cssProperty));
+            },
+            
+            updateArguments:  [element, css, trans[START_VALUE], trans[END_VALUE], animationId]
         };
 
         return animation;
@@ -490,16 +505,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
 
             onAnimationStart: function (el, cssProperty, startValue, e, groupNumber) {
-                if (sVal !== 'current')
+                if (startValue !== 'current')
                     el.style[cssProperty] = startValue;
             },
 
             onAnimationEnd:   function (el, cssProperty, s, endValue, groupNumber) {
-                if (sVal !== 'current')
+                if (endValue !== 'current')
                     el.style[cssProperty] = endValue;
 
                 cssAnimationQueue.pop (groupNumber);
-                updateAnimatorOnTheAnimationQueue ();
+
+                // Update the animator on the new active group
+                if (cssAnimationQueue.updateAnimator)
+                    updateAnimatorOnTheAnimationQueue ();
             },
 
             updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE], groupId]
@@ -510,7 +528,27 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
     // Updates the animation queue and the animator
     function updateAnimatorOnTheAnimationQueue () {
+        // Remove the old animation group from the animator if it is currently present
+        if (cssAnimationQueue.previousAnimationGroup) {
+            var oldElement = cssAnimationQueue.previousAnimationGroup.getElement (),
+                oldTransitions = cssAnimationQueue.previousAnimationGroup.getTransitions (),
+                oldGroupId = cssAnimationQueue.previousAnimationGroup.getGroupId ();
 
+            // Go through and remove all old animations from the animator
+            for (var css in oldTransitions)
+                animator.start ().removeAnimation (animName (null, css, oldGroupId));
+        }
+
+        // Animate the newly active animation group in the animator if one is present
+        if (cssAnimationQueue.activeAnimationGroup) {
+            var element = cssAnimationQueue.activeAnimationGroup.getElement (),
+                transitions = cssAnimationQueue.activeAnimationGroup.getTransitions (),
+                groupId = cssAnimationQueue.activeAnimationGroup.getGroupId ();
+
+            // Go through and add all new animations to the animator
+            for (var css in transitions)
+                animator.start ().addAnimation (generateEnqueuedAnimationObject (element, transitions, css, groupId));
+        }
     }
 
     // Lets the user specify less detailed animation properties
