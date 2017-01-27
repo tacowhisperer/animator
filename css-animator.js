@@ -12,6 +12,9 @@
  *     framesPerSecond - The target fps that all animations will be normalized towards (float or int). If none is given, 60 is
  *                       used.
  *
+ *     queueAnimationsLim - The maximum number of animations that the animation queue should store at any point in time. Will
+ *                          never be less than 1, and defaults to Infinity if none is given.
+ *
  *
  *
  * Public Methods: (arguments) <method description> [return value]
@@ -40,10 +43,9 @@
  *                                      are given, and plays all paused properties of all elements if no arguments are provided>
  *                                      [this object]
  */
-function CSSAnimator (framesPerSecond) {
-    var FPS = typeof framesPerSecond == 'number'? framesPerSecond : 60,
-        animator = new Animator (FPS),
-        cssAnimationQueue = new CSSAnimationQueue ();
+function CSSAnimator (framesPerSecond, queueAnimationsLim) {
+    var animator = new Animator (typeof framesPerSecond == 'number'? framesPerSecond : 60),
+        cssAnimationQueue = new CSSAnimationQueue (typeof queueAnimationsLim == 'number'? queueAnimationsLim : Infinity);
 
     // Used to differentiate between animators
     const CSS_ANIMATOR_ID = uniqueAnimatorIdentification ();
@@ -328,13 +330,13 @@ function CSSAnimator (framesPerSecond) {
                 element.customCSSAnimationIdentification = animationId;
             }
 
-            // Allows for the method to be chainable
+            // Adding the value directly to the element as a property allows for the method to be chainable (return this)
             animationId = element.customCSSAnimationIdentification;
 
             // Get every animation that is given in the transitions object
             var animationsForElement = {};
             for (var css in transitions) {
-                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId, false)).start ();
+                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
 
 
                 // Store a shallow copy of the transitions object
@@ -353,7 +355,8 @@ function CSSAnimator (framesPerSecond) {
         var groupId;
 
         if (element && transitions) {
-
+            groupId = cssAnimationQueue.push (element, transitions);
+            updateAnimatorOnTheAnimationQueue ();
         }
 
         return this;
@@ -431,14 +434,87 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Generates an animation object for a given element and properties to animate
-    function generateAnimationObject (element, transitions, css, animationId, isSynchronous, groupId) {
+    function generateAnimationObject (element, transitions, css, animationId) {
         // Index values of the transitions object arrays (see this.animate for more details)
-        var START_VALUE = 0,
-            END_VALUE = 1,
-            NUM_FRAMES = 2,
-            EASING = 3;
+        const START_VALUE = 0,
+              END_VALUE = 1,
+              NUM_FRAMES = 2,
+              EASING = 3;
 
-        // Removes the need to do constant type checks of values see what was given from the user
+        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
+
+        // Because the initial value can be "current", get a valid css property to initialize the object
+        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
+        
+
+        var animation = {
+            animationName: animName (animationId, css),
+            startValue:    currentCSSValueStart,
+            endValue:      currentCSSValueEnd,
+            interpolator:  cssInterpolate,
+            numFrames:     trans[NUM_FRAMES],
+            updater:       function (el, cssProperty, s, e, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
+
+            interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
+
+            onAnimationStart: function (el, cssProperty, sVal, e) {if (sVal !== 'current') el.style[cssProperty] = sVal},
+            onAnimationEnd:   function (el, cssProperty, s, endVal) {if (endVal !== 'current') el.style[cssProperty] = endVal},
+            updateArguments:  [element, css, trans[START_VALUE], trans[END_VALUE]]
+        };
+
+        return animation;
+    }
+
+    function generateEnqueuedAnimationObject (element, transitions, css, groupId) {
+        const START_VALUE = 0,
+              END_VALUE = 1,
+              NUM_FRAMES = 2,
+              EASING = 3;
+
+        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
+
+        // Because the initial value can be "current", get a valid css property to initialize the object
+        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
+
+
+        var animation = {
+            animationName: animName (null, css, groupId),
+            startValue:    currentCSSValueStart,
+            endValue:      currentCSSValueEnd,
+            interpolator:  cssInterpolate,
+            numFrames:     trans[NUM_FRAMES],
+            updater:       function (el, cssProperty, s, e, gN, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
+
+            interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
+
+            onAnimationStart: function (el, cssProperty, startValue, e, groupNumber) {
+                if (sVal !== 'current')
+                    el.style[cssProperty] = startValue;
+            },
+
+            onAnimationEnd:   function (el, cssProperty, s, endValue, groupNumber) {
+                if (sVal !== 'current')
+                    el.style[cssProperty] = endValue;
+
+                cssAnimationQueue.pop (groupNumber);
+                updateAnimatorOnTheAnimationQueue ();
+            },
+
+            updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE], groupId]
+        };
+
+        return animation;
+    }
+
+    // Updates the animation queue and the animator
+    function updateAnimatorOnTheAnimationQueue () {
+
+    }
+
+    // Lets the user specify less detailed animation properties
+    function extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING) {
         var trans = [null, null, null, null];
 
         // [startValue, endValue, numFrames, easing]
@@ -478,49 +554,7 @@ function CSSAnimator (framesPerSecond) {
         // Invalid transitions array
         else throw 'Invalid transitions object array, [' + ('' + transitions[css]).replace (/\s*,\s*/g, ', ') + '], given.';
 
-        // Because the initial value can be "current", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
-        
-        // Assembly of the pieces to make the object to be fed to the animator
-        var asyncStart = function (el, cssProperty, startVal, e, gN) {
-                             if (startVal !== 'current') 
-                                 el.style[cssProperty] = startVal;
-                         },
-
-            asyncEnd = function (el, cssProperty, s, endVal, gN) {
-                           if (endVal !== 'current') 
-                               el.style[cssProperty] = endVal;
-                       },
-
-            // Allows for animations to be sequential (on an animation queue)
-            syncStart = function (el, cssProperty, startVal, e, groupNumber) {
-                            if (startVal !== 'current') 
-                                el.style[cssProperty] = startVal;
-                        },
-
-            syncEnd = function (el, cssProperty, s, endVal, groupNumber) {
-                          if (endVal !== 'current') 
-                              el.style[cssProperty] = endVal;
-                      };
-
-        var animation = {
-            animationName: isSynchronous? animName (null, css, groupId) : animName (animationId, css),
-            startValue:    currentCSSValueStart,
-            endValue:      currentCSSValueEnd,
-            interpolator:  cssInterpolate,
-            numFrames:     trans[NUM_FRAMES],
-            updater:       function (el, cssProperty, s, e, gN, intermittentCSSValue) {
-                               el.style[cssProperty] = intermittentCSSValue;
-                           },
-
-            interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
-            onAnimationStart: isSynchronous? syncStart : asyncStart,
-            onAnimationEnd: isSynchronous? syncEnd : asyncEnd,
-            updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE], groupId]
-        };
-
-        return animation;
+        return trans;
     }
 
     /**
@@ -813,11 +847,11 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Helps distinguish CSS Animators from each other (assumes a synchronous browser)
-    function CSS_ANIMATOR_IDentifier (animationId) {return CSS_ANIMATOR_ID + '-' + animationId}
+    function cssAnimatorId (animationId) {return CSS_ANIMATOR_ID + '-' + animationId}
 
     // Removes the need to keep track of naming conventions
     function animName (animationId, cssProperty, groupId) {
-        return CSS_ANIMATOR_IDentifier ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
+        return cssAnimatorId ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
     }
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
