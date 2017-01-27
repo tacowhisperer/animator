@@ -46,13 +46,13 @@ function CSSAnimator (framesPerSecond) {
         cssAnimationQueue = new CSSAnimationQueue ();
 
     // Used to differentiate between animators
-    const cssAnimatorId = uniqueAnimatorIdentification ();
+    const CSS_ANIMATOR_ID = uniqueAnimatorIdentification ();
 
     // Used to keep track of all animations under an animation ID
     var animations = {};
 
     // The different animation transition types (interpolation transform functions)
-    const transforms = {
+    const TRANSFORMS = {
 
             // The value in is the value out. Simple.
             linear:             function (x) {return x},
@@ -144,7 +144,7 @@ function CSSAnimator (framesPerSecond) {
         };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
-    const colorMap = {
+    const COLOR_MAP = {
 
             // CSS Level 1
             black:   [  0,   0,   0, 1],
@@ -451,7 +451,7 @@ function CSSAnimator (framesPerSecond) {
 
         else if (transitions[css].length == 3) {
             // [endValue, numFrames, easingName]
-            if (typeof transforms[transitions[css][2]] == 'function') {
+            if (typeof TRANSFORMS[transitions[css][2]] == 'function') {
                 trans[START_VALUE] = 'current';
                 trans[END_VALUE] = transitions[css][0];
                 trans[NUM_FRAMES] = transitions[css][1];
@@ -514,7 +514,7 @@ function CSSAnimator (framesPerSecond) {
                                el.style[cssProperty] = intermittentCSSValue;
                            },
 
-            interpolationTransform: transforms[trans[EASING]]? transforms[trans[EASING]] : transforms.linear,
+            interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
             onAnimationStart: isSynchronous? syncStart : asyncStart,
             onAnimationEnd: isSynchronous? syncEnd : asyncEnd,
             updateArguments: [element, css, trans[START_VALUE], trans[END_VALUE], groupId]
@@ -569,8 +569,8 @@ function CSSAnimator (framesPerSecond) {
         var css = cssValue.toLowerCase ();
 
         // CSS color keyword
-        if (colorMap[css])
-            return colorMap[css];
+        if (COLOR_MAP[css])
+            return COLOR_MAP[css];
 
         // #rgb or #rrggbb notation
         else if (css.match (/^#/)) {
@@ -813,11 +813,11 @@ function CSSAnimator (framesPerSecond) {
     }
 
     // Helps distinguish CSS Animators from each other (assumes a synchronous browser)
-    function cssAnimatorIdentifier (animationId) {return cssAnimatorId + '-' + animationId}
+    function CSS_ANIMATOR_IDentifier (animationId) {return CSS_ANIMATOR_ID + '-' + animationId}
 
     // Removes the need to keep track of naming conventions
     function animName (animationId, cssProperty, groupId) {
-        return cssAnimatorIdentifier ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
+        return CSS_ANIMATOR_IDentifier ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
     }
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
@@ -867,12 +867,12 @@ function CSSAnimator (framesPerSecond) {
         };
     }
 
-    function CSSAnimationQueue (queueLimit) {
+    function CSSAnimationQueue (limit) {
         // Without a queue, you can't call it a queue
         var queueObject = new Queue ();
 
         // Used to help tailor the number of animatios in the queue if memory might be an issue
-        const limit = arguments.length > 0? queueLimit <= 0? 1 : Math.ceil (queueLimit) : Infinity;
+        const queueLimit = arguments.length > 0? limit <= 0? 1 : Math.ceil (limit) : Infinity;
 
         // Used to keep track of groupId values
         var groupIdValue = 0;
@@ -906,7 +906,7 @@ function CSSAnimator (framesPerSecond) {
                 if (this.activeAnimationGroup) {
                     this.updateAnimator = false;
 
-                    if (this.length + 1 > limit) // TODO: Finish implementing queue limit here
+                    if (this.length + 1 > queueLimit) // TODO: Finish implementing queue limit here
                     queueObject.push (animationGroup);
                 }
 
