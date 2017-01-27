@@ -843,7 +843,7 @@ function CSSAnimator (framesPerSecond) {
         this.pop = function (defaultValue) {
             var e;
             if (queueArray.length)
-                e = queueArray.splice (0, 1)[0];
+                e = queueArray.shift ();
 
             else if (arguments.length)
                 e = defaultValue;
@@ -867,23 +867,26 @@ function CSSAnimator (framesPerSecond) {
         };
     }
 
+    /**
+     * A specially designed queue for this animator's purpose. Shouldn't be used outside the scope of this function...
+     */
     function CSSAnimationQueue (limit) {
         // Without a queue, you can't call it a queue
         var queueObject = new Queue ();
 
         // Used to help tailor the number of animatios in the queue if memory might be an issue
-        const queueLimit = arguments.length > 0? limit <= 0? 1 : Math.ceil (limit) : Infinity;
+        const QUEUE_SIZE_LIMIT = arguments.length > 0? limit <= 0? 1 : Math.ceil (limit) : Infinity;
 
         // Used to keep track of groupId values
         var groupIdValue = 0;
 
         // Used to differentiate between animation queues
-        const queueId = uniqueAnimationQueueIdentification ();
+        const QUEUE_ID = uniqueAnimationQueueIdentification ();
 
         // Used internally for bookeeping animation group statuses
-        const ANIMATIONG_GROUP_STATUS_CLOSED = 'closed',
-              ANIMATIONG_GROUP_STATUS_WORKING  = 'working',
-              ANIMATIONG_GROUP_STATUS_FINISHED = 'finished';
+        const ANIMATION_GROUP_STATUS_CLOSED = 'closed',
+              ANIMATION_GROUP_STATUS_WORKING  = 'working',
+              ANIMATION_GROUP_STATUS_FINISHED = 'finished';
 
         // Lets external functions operate directly on whatever transitions group should be active
         this.activeAnimationGroup = false;
@@ -903,39 +906,85 @@ function CSSAnimator (framesPerSecond) {
 
             // Handle the 2 cases where there is nothing in the queue
             if (queueObject.length === 0) {
+                // There is currently an active animation group, but nothing in the queue
                 if (this.activeAnimationGroup) {
                     this.updateAnimator = false;
-
-                    if (this.length + 1 > queueLimit) // TODO: Finish implementing queue limit here
                     queueObject.push (animationGroup);
+
+                    // Pushing the new animation group may have breached the queue limit, so cull the unlucky active animation
+                    enforceQueueLimit ();
                 }
 
+                // There is no active animation group, AND nothing in the queue
                 else {
-                    animationGroup.activate ();
                     this.updateAnimator = true;
                     this.activeAnimationGroup = animationGroup;
+                    this.activeAnimationGroup.activate ();
                 }
             }
 
             // Do standard queue business otherwise
             else {
+                this.updateAnimator = false;
+                queueObject.push (animationGroup);
 
+                // Pushing the new animation group may have breached the queue limit, so cull the unlucky active animation
+                enforceQueueLimit ();
             }
 
             // Update the length to reflect the number of animation groups in the queue, plus the active one
             this.length = 1 + queueObject.length;
+
+            function enforceQueueLimit () {
+                if (this.length + 1 > QUEUE_SIZE_LIMIT) {
+                    this.updateAnimator = true;
+                    this.previousAnimationGroup = this.activeAnimationGroup;
+                    this.previousAnimationGroup.status = ANIMATION_GROUP_STATUS_CLOSED;
+
+                    this.activeAnimationGroup = queueObject.pop ();
+                    this.activeAnimationGroup.activate ();
+                }
+            }
+
             return groupId;
         };
 
         this.pop = function (groupId) {
+            if (this.activeAnimationGroup && this.activeAnimationGroup.getGroupId () === groupId) {
+                // Update the animation group counter
+                this.activeAnimationGroup.finishAnimation ();
 
+                // Remove the currently active animation group in favor of the next group in the queue if finished
+                if (this.activeAnimationGroup.status === ANIMATION_GROUP_STATUS_FINISHED) {
+                    this.updateAnimator = true;
+                    this.previousAnimationGroup = this.activeAnimationGroup;
+                    this.previousAnimationGroup.status = ANIMATION_GROUP_STATUS_CLOSED;
+
+                    this.activeAnimationGroup = queueObject.pop (false);
+                    if (this.activeAnimationGroup) {
+                        this.activeAnimationGroup.activate ();
+                        this.length = 1 + queueObject.length;
+                    }
+
+                    else this.length = 0 + queueObject.length;
+                }
+            }
+
+            else if (arguments.length) {
+                var m0 = 'Out of sequence error: Attempted to pop from AnimationGroup#' + groupId + ' while ',
+                    m1 = this.activeAnimationGroup? 'AnimationGroup#' + this.activeAnimationGroup.getGroupId () : 'no group';
+                
+                throw m0 + m1 + ' is currently active.';
+            }
+
+            return this;
         };
 
         // Used just in case any implementation might need more than one animation queue at a time
         function uniqueAnimationQueueIdentification () {return Date.now ()}
     
         // Used to uniquely generate a group ID value for every animation group stored in the Animation Queue
-        function uniqueGroupIDValue () {return queueId + '-' + (groupIdValue++)}
+        function uniqueGroupIDValue () {return QUEUE_ID + '-' + (groupIdValue++)}
 
         /**
          * Helps abstract away some of the bookeeping necessary to keep the queue in order
@@ -957,12 +1006,12 @@ function CSSAnimator (framesPerSecond) {
 
             
             // Publicly check the current animation's status
-            this.status = ANIMATIONG_GROUP_STATUS_CLOSED;
+            this.status = ANIMATION_GROUP_STATUS_CLOSED;
 
             // Activates the group so that the internal counter may be updated without consequenses
             this.activate = function () {
                 isActivated = true;
-                this.status = ANIMATIONG_GROUP_STATUS_WORKING;
+                this.status = ANIMATION_GROUP_STATUS_WORKING;
 
                 return this;
             };
@@ -972,8 +1021,8 @@ function CSSAnimator (framesPerSecond) {
                 if (isActivated) {
                     numCSSPropertiesDone++;
 
-                    if (numCSSPropertiesDone === numCSSProperties)
-                        this.status = ANIMATIONG_GROUP_STATUS_FINISHED;
+                    if (numCSSPropertiesDone >= numCSSProperties)
+                        this.status = ANIMATION_GROUP_STATUS_FINISHED;
                 }
 
                 else throw 'Attempted to update AnimationGroup#' + id + ' before active. Check the animation queue.';
@@ -989,5 +1038,5 @@ function CSSAnimator (framesPerSecond) {
             // Used for debugging
             this.toString = function () {return 'AnimationGroup#' + id};
         }
-    }   
+    }
 }
