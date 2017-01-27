@@ -111,6 +111,7 @@ function Animator (framesPerSecond) {
         continueLooping = false;
 
     function mainLoop () {
+
         // Update each animation
         for (var anim in animations) {
             var a = animations[anim], fG = a.frameGenerator;
@@ -124,41 +125,44 @@ function Animator (framesPerSecond) {
                 var uA = a.updateArguments,
                     p = fG.next (a.animationDirection).percent ();
 
-                // Reflects the animation transform if the animation should be symmetric
-                if (!a.animationDirection && a.isSymmetric) {
-                    if (a.experiencedDirectionChange) {
+                // Dirty fix to a dirty problem where remove animation works mid-function. Examine this in future projects
+                if (Object.keys (a).length) {
+                    // Reflects the animation transform if the animation should be symmetric
+                    if (!a.animationDirection && a.isSymmetric) {
+                        if (a.experiencedDirectionChange) {
 
-                        // Patches the discontinuity from flipping the animation in linear time
-                        var xStar = fG.calculateXStar (a.interpolationTransform, true);
-                        fG.revertToPercentage (xStar);
-                        uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - xStar));
-                    
-                        a.experiencedDirectionChange = false;
+                            // Patches the discontinuity from flipping the animation in linear time
+                            var xStar = fG.calculateXStar (a.interpolationTransform, true);
+                            fG.revertToPercentage (xStar);
+                            uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - xStar));
+                        
+                            a.experiencedDirectionChange = false;
+                        }
+
+                        else uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - p));
+                    }
+                
+                    // Reflects the animation transform for either a symmetric or asymmetric animation
+                    else {
+                        if (a.experiencedDirectionChange && a.isSymmetric) {
+
+                            // Patches the discontinuity from flipping the animation in linear time
+                            var xStar = fG.calculateXStar (a.interpolationTransform, false);
+                            fG.revertToPercentage (xStar);
+                            uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (xStar));
+
+                            a.experiencedDirectionChange = false;
+                        }
+
+                        else uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (p));
                     }
 
-                    else uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - p));
+                    // Call the updater to do whatever it needs to do
+                    a.updater.apply (a.updater, uA);
+
+                    // Clear the interpolated value because it will no longer be used
+                    uA[uA.length - 1] = null;
                 }
-            
-                // Reflects the animation transform for either a symmetric or asymmetric animation
-                else {
-                    if (a.experiencedDirectionChange && a.isSymmetric) {
-
-                        // Patches the discontinuity from flipping the animation in linear time
-                        var xStar = fG.calculateXStar (a.interpolationTransform, false);
-                        fG.revertToPercentage (xStar);
-                        uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (xStar));
-
-                        a.experiencedDirectionChange = false;
-                    }
-
-                    else uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (p));
-                }
-
-                // Call the updater to do whatever it needs to do
-                a.updater.apply (a.updater, uA);
-
-                // Clear the interpolated value because it will no longer be used
-                uA[uA.length - 1] = null;
             }
         }
 
