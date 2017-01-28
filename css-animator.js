@@ -143,7 +143,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Like 'exp-medium', but there is no sudden transition in speed from slow to fast
             'circular-valley':  function (x) {return 1 - Math.sqrt (1 - x * x)}
-        };
+    };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
     const COLOR_MAP = {
@@ -304,7 +304,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // The transparent keyword
             transparent: [0, 0, 0, 0]
-        };
+    };
 
     // Used to keep track of animations and their group numbers if synchronous
     var idCounter = 0;
@@ -390,6 +390,28 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return this;
     };
 
+    // Stops all animations in the animation queue
+    this.stopQueued = function () {
+        cssAnimatorMethodEnqueuedWorker ('removeAnimation');
+        cssAnimationQueue.clearQueue ();
+
+        return this;
+    };
+
+    // Pauses all animations in the animation queue
+    this.pauseQueued = function () {
+        cssAnimatorMethodEnqueuedWorker ('pauseAnimation');
+
+        return this;
+    };
+
+    // Plays all animations in the animation queue
+    this.playQueued = function () {
+        cssAnimatorMethodEnqueuedWorker ('playAnimation');
+
+        return this;
+    };
+
     // Modulates the main work of this.stop, this.pause, and this.play for the CSS Animator object
     function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callerArgsLength, callback) {
         // The user wanted to use the method only on a specific element
@@ -433,6 +455,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
                 if (callback) callback (id);
             }
+        }
+    }
+
+    // Modulates the main work of this.stopQueued, this.pauseQueued, and this.playQueued for the CSS Animator object
+    function cssAnimatorMethodEnqueuedWorker (methodName) {
+        // There might not be an active group when called
+        if (cssAnimationQueue.activeAnimationGroup) {
+            var activeElement = cssAnimationQueue.activeAnimationGroup.getElement (),
+                activeTransitions = cssAnimationQueue.activeAnimationGroup.getTransitions (),
+                activeGroupId = cssAnimationQueue.activeAnimationGroup.getGroupId ();
+
+            for (var css in activeTransitions)
+                animator.start ()[methodName] (animName (null, css, activeGroupId));
         }
     }
 
@@ -481,6 +516,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return animation;
     }
 
+    // Generates an animation object of a given element and properties to animate for the animation queue
     function generateEnqueuedAnimationObject (element, transitions, css, groupId) {
         const START_VALUE = 0,
               END_VALUE = 1,
@@ -927,6 +963,14 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             return e;
         };
 
+        this.empty = function () {
+            queueArray = [];
+
+            this.length = queueArray.length;
+
+            return this;
+        };
+
         this.get = function (i) {return queueArray[i]};
 
         this.toString = function () {
@@ -972,6 +1016,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         // Initialize as queue length because false active group does not count. However, will generally be queue length + 1.
         this.length = 0 + queueObject.length;
 
+        // Enqueues a new animation group from the element and transitions given during method call
         this.push = function (element, transitions) {
             var groupId = uniqueGroupIDValue (),
                 animationGroup = new AnimationGroup (element, transitions, groupId);
@@ -1021,6 +1066,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             return groupId;
         };
 
+        // Updates the num. of finished animations in the active group and dequeues the next active animation group if applicable
         this.pop = function (groupId) {
             if (this.activeAnimationGroup && this.activeAnimationGroup.getGroupId () === groupId) {
                 // Update the animation group counter
@@ -1048,6 +1094,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 
                 throw m0 + m1 + ' is currently active.';
             }
+
+            return this;
+        };
+
+        // Used for emptying this CSS Animation queue
+        this.clearQueue = function () {
+            queueObject.empty ();
+
+            // Reset publicly accessible variables to their default values
+            this.activeAnimationGroup = false;
+            this.previousAnimationGroup = false;
+            this.updateAnimator = false;
+            this.length = 0 + queueObject.length;
 
             return this;
         };
