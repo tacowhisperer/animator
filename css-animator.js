@@ -33,6 +33,9 @@
  *                 {cssProp0: ["current", targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *                 {cssProp0: [targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *
+ *     thenAnimate - (element, transitions) <Animates and takes the same argument constructs as this.animate, but enqueues 
+ *                                           transitions and does them in order instead of doing them concurrently> [this object]
+ *
  *     stop - (element, cssProperties) <Stops element's cssProperties from animating. Stops all properties if none are given, and
  *                                      stops all properties of all elements if no arguments are provided.> [this object]
  *
@@ -42,6 +45,12 @@
  *     play - (element, cssProperties) <Plays element's cssProperties animations if paused. Plays all paused properties if none
  *                                      are given, and plays all paused properties of all elements if no arguments are provided>
  *                                      [this object]
+ *
+ *     stopQueued - () <Stops the currently active enqueued animation, and clears the animation queue> [this object]
+ *
+ *     pauseQueued - () <Pauses the currently active enqueued animation, and prevents progression on the queue> [this object]
+ *
+ *     playQueued - () <Plays the currently active enqueued animation, and continues the enqueue-dequeue process> [this object]
  */
 function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     var animator = new Animator (typeof framesPerSecond == 'number'? framesPerSecond : 60),
@@ -921,11 +930,11 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     }
 
     // Helps distinguish CSS Animators from each other (assumes a synchronous browser)
-    function cssAnimatorId (animationId) {return CSS_ANIMATOR_ID + '-' + animationId}
+    function cssAnimatorId (animationId) {return CSS_ANIMATOR_ID + '->' + animationId}
 
     // Removes the need to keep track of naming conventions
     function animName (animationId, cssProperty, groupId) {
-        return cssAnimatorId ((arguments.length > 2? '>' + groupId + '--': animationId)) + '-' + cssProperty;
+        return cssAnimatorId ((arguments.length > 2? groupId + '->': animationId)) + '->' + cssProperty;
     }
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
