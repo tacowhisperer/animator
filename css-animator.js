@@ -62,6 +62,9 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Used to keep track of all animations under an animation ID
     var animations = {};
 
+    // Used to cast between different CSS unit types if applicable
+    var cssUnitCaster = new CSSUnitCaster ();
+
     // The different animation transition types (interpolation transform functions)
     const TRANSFORMS = {
 
@@ -314,6 +317,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             // The transparent keyword
             transparent: [0, 0, 0, 0]
     };
+
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/number
+    const ONE_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i,
+          ALL_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/gi; 
 
     // Used to keep track of animations and their group numbers if synchronous
     var idCounter = 0;
@@ -644,8 +651,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
      * Interpolates 2 valid CSS units
      */
     function cssInterpolate (v0, v1, q) {
-        var css0 = cc (v0),
-            css1 = cc (v1);
+        var css0 = cssUnitCaster.colorCast (v0),
+            css1 = cssUnitCaster.colorCast (v1);
 
         // This is going to be a color interpolation
         if (css0 && css1) 
@@ -657,156 +664,14 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // Both values must be unit measurements of sorts
         else {
-            v0 = '' + v0;
-            v1 = '' + v1;
+            var unitCastArray = cssUnitCaster.cast ('' + v0, '' + v1),
+                v0Value = unitCastArray[0][0],
+                v1Value = unitCastArray[1][0],
+                vUnit = unitCastArray[0][1];
 
-            var v0Unit = v0.match (/\D+$/),
-                v1Unit = v1.match (/\D+$/);
-
-            v0Unit = v0Unit? v0Unit[0] : '';
-            v1Unit = v1Unit? v1Unit[0] : '';
-
-            // Units must be of the same type to have any meaning
-            if (v0Unit != v1Unit)
-                throw 'CSS unit type mismatch: "' + v0Unit + '" vs "' + v1Unit + '"';
-
-            // Do a linear interpolation of the values and return the value as a string with its unit if one is provided
-            else {
-                var numMatch = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i, // https://developer.mozilla.org/en-US/docs/Web/CSS/number
-                    v0Value = +v0.match (numMatch)[0],
-                    v1Value = +v1.match (numMatch)[0];
-
-                return ((1 - q) * v0Value + q * v1Value) + v0Unit;
-            }
+            // Do a linear interpolation of the values and return the value as a string with whatever unit is provided
+            return ((1 - q) * v0Value + q * v1Value) + vUnit;
         }
-    }
-
-    // Interface for converting incoming css color values to RGBA arrays (color cast function)
-    function cc (cssValue) {
-        var css = cssValue.toLowerCase ();
-
-        // CSS color keyword
-        if (COLOR_MAP[css])
-            return COLOR_MAP[css];
-
-        // #rgb or #rrggbb notation
-        else if (css.match (/^#/)) {
-            var t = css.replace (/^#/, ''),
-                rgb = t.length == 3? t.match (/[0-9a-f]/g).map (function (v) {return v + v}) : t.match (/[0-9a-f]{2}/g);
-
-            // Convert each rgb hex value to decimal
-            rgb = rgb.map (function (v) {return +('0x' + v)});
-
-            // Append an alpha value of 1
-            rgb.push (1);
-
-            return rgb;
-        }
-
-        // rgb() notation
-        else if (css.match (/rgb(\s|\t)*\(/)) {
-            var rgb = false;
-
-            // Percentage values
-            rgb = css.match (/\d+(\.\d+)?%/g);
-
-            // Integer values
-            if (!rgb)
-                rgb = css.match (/\d+/g);
-
-            // Convert percentages to values
-            else 
-                rgb = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
-
-            // Append an alpha value of 1
-            rgb.push (1);
-
-            return rgb
-        }
-
-        // rgba() notation
-        else if (css.match (/rgba(\s|\t)*\(/)) {
-            var rgba = false;
-
-            // Percentage values
-            rgba = css.match (/\d+(\.\d+)?%/g);
-
-            // Integer values
-            if (!rgba)
-                rgba = css.match (/\d+/g);
-
-            // Convert percentages to values
-            else 
-                rgba = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
-
-            // Extract the alpha value from the rgba string
-            var alpha = css.match (/,\s*\d+(\.\d+)?\s*\)/);
-
-            alpha = alpha? +alpha[0].replace (/,|\)|\s/g, '') : 1;
-            rgba[3] = alpha;
-
-            return rgba;
-        }
-
-        // hsl() notation
-        else if (css.match (/hsl(\s|\t)*\(/)) {
-            var rgb = h2r (css);
-
-            // Add the default solid color alpha channel value
-            rgb.push (1);
-
-            return rgb;
-        }
-
-        // hsla() notation
-        else if (css.match (/hsla(\s|\t)*\(/)) {
-            var rgba = h2r (css);
-
-            // Add the alpha channel value
-            var alpha = css.match (/,(\s|\t)*\d+(\.\d+)?(\s|\t)*\)/);
-            alpha = alpha? +alpha[0].replace (/,|\)/g, '') : 1;
-            rgba.push (alpha);
-
-            return rgba;
-        }
-
-        // Value fed is not a valid color
-        else return false;
-
-        // Converts HSL to RGB
-        function h2r (hslString) {
-            // Hue degree
-            var H = mod (+hslString.match (/\((\s|\t)*\d+(\.\d+)?(\s|\t)*,/)[0].replace (/\(|,/g, ''), 360);
-
-            // Saturation and lightness
-            var SL = hslString.match (/\d+%/g).map (function (p) {return +p.replace ('%', '') / 100}),
-                S = SL[0],
-                L = SL[1];
-
-            var C = (1 - Math.abs (2 * L - 1)) * S,
-                X = C * (1 - Math.abs (mod ((H / 60), 2) - 1)),
-                m = L - C / 2;
-
-            var R_G_B_ = H < 60?
-                            [C, X, 0] :
-
-                         H < 120?
-                            [X, C, 0] :
-
-                         H < 180?
-                            [0, C, X] :
-
-                         H < 240?
-                            [0, X, C] :
-
-                         H < 300?
-                            [X, 0, C] : [C, 0, X];
-
-            return [Math.round (255 * (R_G_B_[0] + m)), Math.round (255 * (R_G_B_[1] + m)), Math.round (255 * (R_G_B_[2] + m))];
-        }
-
-        // Returns the expected values of modulus mathematics
-        function mod (a, b) {return (b + (a % b)) % b}
     }
 
     /**
@@ -1177,6 +1042,221 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Used for debugging
             this.toString = function () {return 'AnimationGroup#' + id};
+        }
+    }
+
+    /**
+     * Casts common CSS units from their current value to "px"
+     */
+    function CSSUnitCaster () {
+        var dpiObject = dpi ();
+
+        // Maybe the user zooms in the page or something
+        this.updateDPI = function () {
+            dpiObject = dpi ();
+
+            return this;
+        };
+
+        // Method for converting common CSS units to pixels if both CSS properties given do not have the same units
+        this.cast = function (css1, css2) {
+            // Cast css units to string if not already for regex matching to work
+            css1 = '' + css1;
+            css2 = '' + css2;
+
+            // Extract the unit type associated with the CSS Property
+            var css1Unit = css1.match (/\D+$/),
+                css2Unit = css2.match (/\D+$/);
+
+            css1Unit = css1Unit? css1Unit[0] : '';
+            css2Unit = css2Unit? css2Unit[0] : '';
+
+            // Extract the number value given with the CSS Property
+            var css1NumberValue = css1.match (ONE_CSS_NUMBER_PATTERN),
+                css2NumberValue = css2.match (ONE_CSS_NUMBER_PATTERN);
+
+            css1NumberValue = css1NumberValue? +css1NumberValue[0] : 0;
+            css2NumberValue = css2NumberValue? +css2NumberValue[0] : 0;
+
+            // Easy peasy - both units provided are the same
+            if (css1Unit === css2Unit)
+                return [[css1NumberValue, css1Unit], [css2NumberValue, css2Unit]];
+
+            // Converts the number values of each unit to their respective pixel value
+            function convertToPixel (unit, numberValue) {
+                var u = unit,
+                    n = numberValue;
+
+                if (u === 'in')
+                    return n * dpiObject.dpi;
+
+                else if (u === 'cm')
+                    return n * dpiObject.dpcm;
+
+                else if (u === 'mm')
+                    return n * dpiObject.dpcm / 10;
+
+                else if (u === 'pt')
+                    return n * dpiObject.dpi / 72;
+
+                else if (u === 'pc')
+                    return n * dpiObject.dpi / 6;
+
+
+                // The current setup does not allow for elements to be passed to this function in a sensible way.
+                const err2 = ' Use "' + u + '" for both CSS values to avoid this error.';
+
+                if (u === 'em' || u === '%' || u === 'rem')
+                    throw 'Cannot convert from "' + u + '" to "px" in any meaningful way.' + err2;
+
+                else throw 'Unsupported unit convertion of "' + u + '" to "px".' + err2;
+            }
+
+            // Convert all other units to pixels
+            return [[convertToPixel (css1Unit, css1NumberValue), 'px'], [convertToPixel (css2Unit, css2NumberValue), 'px']];
+        };
+
+        // Method for converting incoming css color values to RGBA arrays. Returns false if not a color
+        this.colorCast = function (cssValue) {
+            var css = cssValue.toLowerCase ();
+
+            // CSS color keyword
+            if (COLOR_MAP[css])
+                return COLOR_MAP[css];
+
+            // #rgb or #rrggbb notation
+            else if (css.match (/^#/)) {
+                var t = css.replace (/^#/, ''),
+                    rgb = t.length == 3? t.match (/[0-9a-f]/g).map (function (v) {return v + v}) : t.match (/[0-9a-f]{2}/g);
+
+                // Convert each rgb hex value to decimal
+                rgb = rgb.map (function (v) {return +('0x' + v)});
+
+                // Append an alpha value of 1
+                rgb.push (1);
+
+                return rgb;
+            }
+
+            // rgb() notation
+            else if (css.match (/rgb(\s|\t)*\(/)) {
+                var rgb = false;
+
+                // Percentage values
+                rgb = css.match (/\d+(\.\d+)?%/g);
+
+                // Integer values
+                if (!rgb)
+                    rgb = css.match (/\d+/g);
+
+                // Convert percentages to values
+                else 
+                    rgb = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
+
+                // Append an alpha value of 1
+                rgb.push (1);
+
+                return rgb
+            }
+
+            // rgba() notation
+            else if (css.match (/rgba(\s|\t)*\(/)) {
+                var rgba = false;
+
+                // Percentage values
+                rgba = css.match (/\d+(\.\d+)?%/g);
+
+                // Integer values
+                if (!rgba)
+                    rgba = css.match (/\d+/g);
+
+                // Convert percentages to values
+                else 
+                    rgba = rgb.map (function (p) {return Math.round (+p.replace ('%', '') * 2.55)});
+
+                // Extract the alpha value from the rgba string
+                var alpha = css.match (/,\s*\d+(\.\d+)?\s*\)/);
+
+                alpha = alpha? +alpha[0].replace (/,|\)|\s/g, '') : 1;
+                rgba[3] = alpha;
+
+                return rgba;
+            }
+
+            // hsl() notation
+            else if (css.match (/hsl(\s|\t)*\(/)) {
+                var rgb = h2r (css);
+
+                // Add the default solid color alpha channel value
+                rgb.push (1);
+
+                return rgb;
+            }
+
+            // hsla() notation
+            else if (css.match (/hsla(\s|\t)*\(/)) {
+                var rgba = h2r (css);
+
+                // Add the alpha channel value
+                var alpha = css.match (/,(\s|\t)*\d+(\.\d+)?(\s|\t)*\)/);
+                alpha = alpha? +alpha[0].replace (/,|\)/g, '') : 1;
+                rgba.push (alpha);
+
+                return rgba;
+            }
+
+            // Value fed is not a valid color
+            else return false;
+
+            // Converts HSL to RGB
+            function h2r (hslString) {
+                // Hue degree
+                var H = mod (+hslString.match (/\((\s|\t)*\d+(\.\d+)?(\s|\t)*,/)[0].replace (/\(|,/g, ''), 360);
+
+                // Saturation and lightness
+                var SL = hslString.match (/\d+%/g).map (function (p) {return +p.replace ('%', '') / 100}),
+                    S = SL[0],
+                    L = SL[1];
+
+                var C = (1 - Math.abs (2 * L - 1)) * S,
+                    X = C * (1 - Math.abs (mod ((H / 60), 2) - 1)),
+                    m = L - C / 2;
+
+                var R_G_B_ = H < 60?
+                                [C, X, 0] :
+
+                             H < 120?
+                                [X, C, 0] :
+
+                             H < 180?
+                                [0, C, X] :
+
+                             H < 240?
+                                [0, X, C] :
+
+                             H < 300?
+                                [X, 0, C] : [C, 0, X];
+
+                return [Math.round(255 * (R_G_B_[0] + m)), Math.round(255 * (R_G_B_[1] + m)), Math.round(255 * (R_G_B_[2] + m))];
+            }
+
+            // Returns the expected values of modulus mathematics
+            function mod (a, b) {return (b + (a % b)) % b}
+        };
+
+        // https://github.com/ryanve/res/blob/master/res.js
+        function dpi () {
+            const one = {dpi: 96, dpcm: 96 / 2.54};
+
+            var dppx = 0;
+
+            if (window) 
+                dppx = +window.devicePixelRatio;
+
+            else if (screen && screen.deviceXDPI)
+                dppx = Math.sqrt (screen.deviceXDPI * screen.deviceYDPI) / one.dpi;
+
+            return {'dpi': dppx * one.dpi, 'dpcm': dppx * one.dpcm};
         }
     }
 }
