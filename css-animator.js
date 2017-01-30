@@ -66,7 +66,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     var cssUnitCaster = new CSSUnitCaster ();
 
     // Used to process CSS shorthand properties
-    var cssInterpreter = new cssInterpreter ();
+    var cssInterpreter = new CSSInterpreter ();
 
     // The different animation transition types (interpolation transform functions)
     const TRANSFORMS = {
@@ -356,7 +356,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             // var animationsForElement = {};
             var processedTransitionsArray = [];
             for (var css in transitions) {
-                processedTransitionsArray = cssInterpreter.interpret (css, transitions);
+                processedTransitionsArray = cssInterpreter.interpret (css, transitions, animations);
                 // animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
 
 
@@ -1281,6 +1281,51 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
      * Interprets incoming CSS properties and de-composes them into more basic form if shorthand
      */
     function CSSInterpreter () {
+        // Transitions array index values
+        const START_VALUE = 0,
+              END_VALUE = 1,
+              NUM_FRAMES = 2,
+              EASING = 3;
 
+        // All non-whitespace matching regex pattern
+        const NON_WHITESPACE = /\S+/g;
+
+        // TODO: Finish developing this baby
+        this.interpret = function (css, transitions, resultContainer, animationId) {
+            var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING),
+                decomStart = decompositionOf ('' + trans[START_VALUE]),
+                decomEnd = decompositionOf ('' + trans[END_VALUE]);
+
+            // All of the new CSS values and transitions extracted from decomposing them are stored here
+            var processedTrans = {}
+
+            // Go through each extracted value of shorthand and create its simpler CSS property based off the master CSS list
+            if (decomStart.length > 1) {
+
+            }
+
+            // Same as decomStart
+            if (decomEnd.length > 1) {
+
+            }
+
+            // this.interpret was called from animator.animate, so 
+            if (arguments.length > 2) {
+                for (var transitionsArray in processedTrans)
+                    resultContainer[animationId++] = transitionsArray;
+
+                // Update the global ID tracker to avoid overriding these newly generated animations
+                idCounter = animationId;
+            }
+
+            // TODO: Add the processed transitions arrays to the animator
+        };
+
+        // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
+        function decompositionOf (cssValue) {
+            var decomposition = cssValue.match (NON_WHITESPACE);
+
+            return decomposition? decomposition : [''];
+        }
     }
 }
