@@ -65,6 +65,9 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Used to cast between different CSS unit types if applicable
     var cssUnitCaster = new CSSUnitCaster ();
 
+    // Used to process CSS shorthand properties
+    var cssInterpreter = new cssInterpreter ();
+
     // The different animation transition types (interpolation transform functions)
     const TRANSFORMS = {
 
@@ -350,17 +353,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             animationId = element.customCSSAnimationIdentification;
 
             // Get every animation that is given in the transitions object
-            var animationsForElement = {};
+            // var animationsForElement = {};
+            var processedTransitionsArray = [];
             for (var css in transitions) {
-                animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
+                processedTransitionsArray = cssInterpreter.interpret (css, transitions);
+                // animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
 
 
                 // Store a shallow copy of the transitions object
-                animationsForElement[css] = transitions[css];
+                // animationsForElement[css] = transitions[css];
             }
 
             // Update the animations mapped to the element
-            animations[animationId] = animationsForElement;
+            animations[animationId] = processedTransitionsArray; // animationsForElement;
         }
 
         return this;
@@ -513,17 +518,23 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
 
             onAnimationStart: function (el, cssProperty, sVal, e, id) {
+                // Update screen DPI in case of user zoom or whatnot
+                cssUnitCaster.updateDPI ();
+
                 if (sVal !== 'current') el.style[cssProperty] = sVal;
 
                 // Prevents regular animation calls from overriding enqueued animation calls
-                animator.playAnimation (animName (id, cssProperty));
+                animator.start ().playAnimation (animName (id, cssProperty));
             },
 
             onAnimationEnd:   function (el, cssProperty, s, endVal, id) {
+                // Update screen DPI in case of user zoom or whatnot
+                cssUnitCaster.updateDPI ();
+
                 if (endVal !== 'current') el.style[cssProperty] = endVal;
 
                 // Prevents regular animation calls from overriding enqueued animation calls
-                animator.pauseAnimation (animName (id, cssProperty));
+                animator.start ().pauseAnimation (animName (id, cssProperty));
             },
             
             updateArguments:  [element, css, trans[START_VALUE], trans[END_VALUE], animationId]
@@ -557,11 +568,17 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             interpolationTransform: TRANSFORMS[trans[EASING]]? TRANSFORMS[trans[EASING]] : TRANSFORMS.linear,
 
             onAnimationStart: function (el, cssProperty, startValue, e, groupNumber) {
+                // Update DPI in case of user zoom or whatnot
+                cssUnitCaster.updateDPI ();
+
                 if (startValue !== 'current')
                     el.style[cssProperty] = startValue;
             },
 
             onAnimationEnd:   function (el, cssProperty, s, endValue, groupNumber) {
+                // Update DPI in case of user zoom or whatnot
+                cssUnitCaster.updateDPI ();
+
                 if (endValue !== 'current')
                     el.style[cssProperty] = endValue;
 
@@ -1258,5 +1275,12 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             return {'dpi': dppx * one.dpi, 'dpcm': dppx * one.dpcm};
         }
+    }
+
+    /**
+     * Interprets incoming CSS properties and de-composes them into more basic form if shorthand
+     */
+    function CSSInterpreter () {
+
     }
 }
