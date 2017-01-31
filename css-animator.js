@@ -1290,6 +1290,67 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         // All non-whitespace matching regex pattern
         const NON_WHITESPACE = /\S+/g;
 
+        // List of common CSS shorthands to quickly transition from one value to another
+        const CSS_SHORTHAND_OF = {
+            border: {
+                none: 'border-style',
+                hidden: 'border-style',
+                dotted: 'border-style',
+                dashed: 'border-style',
+                solid: 'border-style',
+                double: 'border-style',
+                groove: 'border-style',
+                ridge: 'border-style',
+                inset: 'border-style',
+                outset: 'border-style',
+
+                'unit': 'border-width',
+                'color': 'border-color'
+            },
+
+            'border-radius': {
+                'canonical-order': {
+                    // TODO: Figure out what to do with '/' symbol that can be thrown in here...
+                }
+            },
+
+            'border-style': {
+                'canonical-order': {
+                    1: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
+                    2: ['border-top-style', 'border-bottom-style', 'border-left-style', 'border-right-style'],
+                    3: ['border-top-style', 'border-left-style', 'border-right-style', 'border-bottom-style'],
+                    4: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']
+                }
+            },
+
+            borderStyle: {
+                'canonical-order': {
+                    1: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
+                    2: ['border-top-style', 'border-bottom-style', 'border-left-style', 'border-right-style'],
+                    3: ['border-top-style', 'border-left-style', 'border-right-style', 'border-bottom-style'],
+                    4: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']
+                }
+            },
+
+            margin: {
+                'canonical-order': {
+                    1: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'],
+                    2: ['margin-top', 'margin-bottom', 'margin-left', 'margin-right'],
+                    3: ['margin-top', 'margin-left', 'margin-right', 'margin-bottom'],
+                    4: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left']
+                }
+            },
+
+            padding: {
+                'canonical-order': {
+                    1: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
+                    2: ['padding-top', 'padding-bottom', 'padding-left', 'padding-right'],
+                    3: ['padding-top', 'padding-left', 'padding-right', 'padding-bottom'],
+                    4: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left']
+                }
+            }
+        };
+
         // TODO: Finish developing this baby
         this.interpret = function (css, transitions, resultContainer, animationId) {
             var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING),
@@ -1301,12 +1362,20 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Go through each extracted value of shorthand and create its simpler CSS property based off the master CSS list
             if (decomStart.length > 1) {
+                if (CSS_SHORTHAND_OF[css]) {
 
+                }
+
+                else throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
             }
 
             // Same as decomStart
             if (decomEnd.length > 1) {
+                if (CSS_SHORTHAND_OF[css]) {
 
+                }
+
+                else throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
             }
 
             // this.interpret was called from animator.animate, so 
