@@ -358,7 +358,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 var shortTransitions = cssInterpreter.interpret (css, transitions, element);
 
                 // The current CSS property is shorthand, so work with the new object instead
-                if (Object.keys (shortTransitions).length > 0) {
+                if (numKeysOf (shortTransitions) > 0) {
                     for (var shortCSS in shortTransitions) {
                         animator.addAnimation(generateAnimationObject (element, shortTransitions, shortCSS, animationId)).start();
                         animationsForElement[shortCSS] = shortTransitions[shortCSS];
@@ -389,7 +389,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             for (var css in transitions) {
                 var shortTransitions = cssInterpreter.interpret (css, transitions, element);
 
-                if (Object.keys (shortTransitions).length > 0) {
+                if (numKeysOf (shortTransitions) > 0) {
                     for (var shortCSS in shortTransitions)
                         animationsForElement[shortCSS] = shortTransitions[shortCSS];
                 }
@@ -842,6 +842,20 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
     function uniqueAnimatorIdentification () {return Date.now ()}
+
+    // Used to find the length of a plain object
+    function numKeysOf (obj) {
+        if (Object.keys)
+            return Object.keys (obj).length;
+
+        var c = 0;
+        for (var p in obj) {
+            if (obj.hasOwnProperty (p))
+                c++;
+        }
+
+        return c;
+    }
 
     /**
      * Simple queue object. Typically taught in introductory computer science classes.
