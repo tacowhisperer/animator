@@ -1435,7 +1435,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Throw an error because both values should use shorthand if applicable
             else if (startLen !== endLen) 
-                throw 'Start CSS shorthand length (' + startLen + ') does not equal end CSS shorthand length (' + endLen + ')';
+                throw 'Start CSS shorthand length "' + tStrStart + '" does not equal end CSS shorthand length "' + tStrEnd + '"';
 
             function checkShorthand (isStart) {
                 var decom = isStart? decomStart : decomEnd,
