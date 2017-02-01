@@ -126,7 +126,7 @@ function Animator (framesPerSecond) {
                     p = fG.next (a.animationDirection).percent ();
 
                 // Dirty fix to a dirty problem where remove animation works mid-function. Examine this in future projects
-                if (Object.keys (a).length) {
+                if (numKeysOf (a)) {
                     // Reflects the animation transform if the animation should be symmetric
                     if (!a.animationDirection && a.isSymmetric) {
                         if (a.experiencedDirectionChange) {
@@ -423,6 +423,20 @@ function Animator (framesPerSecond) {
 
         return this;
     };
+
+    // Used to find the length of a plain object
+    function numKeysOf (obj) {
+        if (Object.keys)
+            return Object.keys (obj).length;
+
+        var c = 0;
+        for (var p in obj) {
+            if (obj.hasOwnProperty (p))
+                c++;
+        }
+
+        return c;
+    }
 
     /**
      * Normalizes variable framerates to the Animator's fps using 4th order Runge-Kutta integration. This means that frame values
