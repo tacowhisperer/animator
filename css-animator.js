@@ -1120,9 +1120,17 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             var css1Unit = css1.match (/\D+$/),
                 css2Unit = css2.match (/\D+$/);
 
-            // Assume that no unit means px
-            css1Unit = css1Unit? css1Unit[0] : 'px';
-            css2Unit = css2Unit? css2Unit[0] : 'px';
+            // Neither value has units associated, so could be degrees or something
+            if (!css1Unit && !css2Unit) {
+                css1Unit = '';
+                css2Unit = '';
+            }
+
+            // Assume that no unit for just 1 value means px
+            else {
+                css1Unit = css1Unit? css1Unit[0] : 'px';
+                css2Unit = css2Unit? css2Unit[0] : 'px';
+            }
 
             // Extract the number value given with the CSS Property
             var css1NumberValue = css1.match (ONE_CSS_NUMBER_PATTERN),
