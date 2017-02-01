@@ -1352,6 +1352,18 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // List of common CSS shorthands to quickly transition from one value to another
         const CSS_SHORTHAND_OF = {
+            background: {
+                /* Support for non-unit values not implemented yet
+                'repeat-x': 'background-repeat',
+                'repeat-y': 'background-repeat',
+                repeat: 'background-repeat',
+                space: 'background-repeat',
+                round: 'background-repeat',
+                'no-repeat': 'background-repeat',*/
+
+                'color': 'background-color'
+            },
+
             border: {
                 /* Support for non-unit values not implemented yet
                 none: 'border-style',
@@ -1387,6 +1399,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 }
             },
 
+            font: {
+                'unit': 'font-size'
+            },
+
             margin: {
                 'canonical-order': {
                     1: [['margin-top', 'margin-right', 'margin-bottom', 'margin-left']],
@@ -1394,6 +1410,11 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                     3: [['margin-top'], ['margin-left', 'margin-right'], ['margin-bottom']],
                     4: [['margin-top'], ['margin-right'], ['margin-bottom'], ['margin-left']]
                 }
+            },
+
+            outline: {
+                'unit': 'outline-width',
+                'color': 'outline-color'
             },
 
             padding: {
