@@ -357,6 +357,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             for (var css in transitions) {
                 var shortTransitions = cssInterpreter.interpret (css, transitions, element);
 
+                console.log ('Extracted transitions from "' + css +'": (' + Object.keys (shortTransitions).length + ')');
+                console.log (JSON.stringify (shortTransitions, null, '    '));
+                console.log ('');
+
                 // The current CSS property is shorthand, so work with the new object instead
                 if (Object.keys (shortTransitions).length > 0) {
                     for (var shortCSS in shortTransitions) {
@@ -1106,8 +1110,9 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             var css1Unit = css1.match (/\D+$/),
                 css2Unit = css2.match (/\D+$/);
 
-            css1Unit = css1Unit? css1Unit[0] : '';
-            css2Unit = css2Unit? css2Unit[0] : '';
+            // Assume that no unit means px
+            css1Unit = css1Unit? css1Unit[0] : 'px';
+            css2Unit = css2Unit? css2Unit[0] : 'px';
 
             // Extract the number value given with the CSS Property
             var css1NumberValue = css1.match (ONE_CSS_NUMBER_PATTERN),
@@ -1349,12 +1354,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
               NUM_FRAMES = 2,
               EASING = 3;
 
-        // All non-whitespace matching regex pattern
-        const NON_WHITESPACE = /\S+/g;
-
         // List of common CSS shorthands to quickly transition from one value to another
         const CSS_SHORTHAND_OF = {
             border: {
+                /* Support for non-unit values not implemented yet
                 none: 'border-style',
                 hidden: 'border-style',
                 dotted: 'border-style',
@@ -1364,7 +1367,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 groove: 'border-style',
                 ridge: 'border-style',
                 inset: 'border-style',
-                outset: 'border-style',
+                outset: 'border-style',*/
 
                 'unit': 'border-width',
                 'color': 'border-color'
@@ -1510,7 +1513,12 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
         function decompositionOf (cssValue) {
-            var decomposition = cssValue.match (NON_WHITESPACE);
+            // All non-whitespace matching regex pattern
+            const COMMA_SEPARATION = /\s*,\s*/g,
+                  NON_WHITESPACE = /\S+/g;
+
+
+            var decomposition = cssValue.replace (COMMA_SEPARATION, ',').match (NON_WHITESPACE);
 
             return decomposition? decomposition : [''];
         }
