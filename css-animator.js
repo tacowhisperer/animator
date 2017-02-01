@@ -57,7 +57,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         cssAnimationQueue = new CSSAnimationQueue (typeof queueAnimationsLim == 'number'? queueAnimationsLim : Infinity);
 
     // Used to differentiate between animators
-    const CSS_ANIMATOR_ID = uniqueAnimatorIdentification ();
+    var CSS_ANIMATOR_ID = uniqueAnimatorIdentification ();
 
     // Used to keep track of all animations under an animation ID
     var animations = {};
@@ -69,7 +69,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     var cssInterpreter = new CSSInterpreter ();
 
     // The different animation transition types (interpolation transform functions)
-    const TRANSFORMS = {
+    var TRANSFORMS = {
 
             // The value in is the value out. Simple.
             linear:             function (x) {return x},
@@ -161,7 +161,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
-    const COLOR_MAP = {
+    var COLOR_MAP = {
 
             // CSS Level 1
             black:   [  0,   0,   0, 1],
@@ -322,8 +322,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     };
 
     // https://developer.mozilla.org/en-US/docs/Web/CSS/number
-    const ONE_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i,
-          ALL_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/gi; 
+    var ONE_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/i,
+        ALL_CSS_NUMBER_PATTERN = /(^\-)?((\d+(\.\d+)?)|\.\d+)(e\-?\d+)?/gi; 
 
     // Used to keep track of animations and their group numbers if synchronous
     var idCounter = 0;
@@ -516,10 +516,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Generates an animation object for a given element and properties to animate
     function generateAnimationObject (element, transitions, css, animationId) {
         // Index values of the transitions object arrays (see this.animate for more details)
-        const START_VALUE = 0,
-              END_VALUE = 1,
-              NUM_FRAMES = 2,
-              EASING = 3;
+        var START_VALUE = 0,
+            END_VALUE = 1,
+            NUM_FRAMES = 2,
+            EASING = 3;
 
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
 
@@ -566,10 +566,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
     // Generates an animation object of a given element and properties to animate for the animation queue
     function generateEnqueuedAnimationObject (element, transitions, css, groupId) {
-        const START_VALUE = 0,
-              END_VALUE = 1,
-              NUM_FRAMES = 2,
-              EASING = 3;
+        var START_VALUE = 0,
+            END_VALUE = 1,
+            NUM_FRAMES = 2,
+            EASING = 3;
 
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
 
@@ -917,18 +917,18 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var queueObject = new Queue ();
 
         // Used to help tailor the number of animatios in the queue if memory might be an issue
-        const QUEUE_SIZE_LIMIT = arguments.length > 0? limit <= 0? 1 : Math.ceil (limit) : Infinity;
+        var QUEUE_SIZE_LIMIT = arguments.length > 0? limit <= 0? 1 : Math.ceil (limit) : Infinity;
 
         // Used to keep track of groupId values
         var groupIdValue = 0;
 
         // Used to differentiate between animation queues
-        const QUEUE_ID = uniqueAnimationQueueIdentification ();
+        var QUEUE_ID = uniqueAnimationQueueIdentification ();
 
         // Used internally for bookeeping animation group statuses
-        const ANIMATION_GROUP_STATUS_CLOSED = 'closed',
-              ANIMATION_GROUP_STATUS_WORKING  = 'working',
-              ANIMATION_GROUP_STATUS_FINISHED = 'finished';
+        var ANIMATION_GROUP_STATUS_CLOSED = 'closed',
+            ANIMATION_GROUP_STATUS_WORKING  = 'working',
+            ANIMATION_GROUP_STATUS_FINISHED = 'finished';
 
         // Lets external functions operate directly on whatever transitions group should be active
         this.activeAnimationGroup = false;
@@ -1165,7 +1165,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
 
                 // The current setup does not allow for elements to be passed to this function in a sensible way.
-                const err2 = ' Use "' + u + '" for both CSS values to avoid this error.';
+                var err2 = ' Use "' + u + '" for both CSS values to avoid this error.';
 
                 if (u === 'em' || u === '%' || u === 'rem')
                     throw 'Cannot convert from "' + u + '" to "px" in any meaningful way.' + err2;
@@ -1348,7 +1348,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // https://github.com/ryanve/res/blob/master/res.js
         function dpi () {
-            const one = {dpi: 96, dpcm: 96 / 2.54};
+            var one = {dpi: 96, dpcm: 96 / 2.54};
 
             var dppx = 0;
 
@@ -1367,13 +1367,13 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
      */
     function CSSInterpreter () {
         // Transitions array index values
-        const START_VALUE = 0,
-              END_VALUE = 1,
-              NUM_FRAMES = 2,
-              EASING = 3;
+        var START_VALUE = 0,
+            END_VALUE = 1,
+            NUM_FRAMES = 2,
+            EASING = 3;
 
         // List of common CSS shorthands to quickly transition from one value to another
-        const CSS_SHORTHAND_OF = {
+        var CSS_SHORTHAND_OF = {
             background: {
                 /* Support for non-unit values not implemented yet
                 'repeat-x': 'background-repeat',
@@ -1553,8 +1553,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
         function decompositionOf (cssValue) {
             // All non-whitespace matching regex pattern
-            const COMMA_SEPARATION = /\s*,\s*/g,
-                  NON_WHITESPACE = /\S+/g;
+            var COMMA_SEPARATION = /\s*,\s*/g,
+                NON_WHITESPACE = /\S+/g;
 
 
             var decomposition = cssValue.replace (COMMA_SEPARATION, ',').match (NON_WHITESPACE);
