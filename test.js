@@ -4,8 +4,9 @@ var e = document.body,
 	transF2 = {'padding-top': ['0px', 45, 'trig']},
 	transB = {'background-color': ['white', 45]},
 	transB2 = {'padding-top': ['113px', 45, 'trig']},
-	transF3 = {'border': ['10px black', 45, 'trig']},
+	transF3 = {'border': ['10px dotted black', 45, 'trig']},
+	transB3 = {'border': ['0px solid white', 45, 'trig']},
 	cssAnimator = new CSSAnimator();
 
-e.style.border = '1px white';
+e.style.border = '1px solid white';
 cssAnimator.animate (e, transF3);
