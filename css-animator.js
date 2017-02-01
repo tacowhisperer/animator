@@ -357,10 +357,6 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             for (var css in transitions) {
                 var shortTransitions = cssInterpreter.interpret (css, transitions, element);
 
-                console.log ('Extracted transitions from "' + css +'": (' + Object.keys (shortTransitions).length + ')');
-                console.log (JSON.stringify (shortTransitions, null, '    '));
-                console.log ('');
-
                 // The current CSS property is shorthand, so work with the new object instead
                 if (Object.keys (shortTransitions).length > 0) {
                     for (var shortCSS in shortTransitions) {
