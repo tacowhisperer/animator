@@ -353,19 +353,29 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             animationId = element.customCSSAnimationIdentification;
 
             // Get every animation that is given in the transitions object
-            // var animationsForElement = {};
-            var processedTransitionsArray = [];
+            var animationsForElement = {};
             for (var css in transitions) {
-                processedTransitionsArray = cssInterpreter.interpret (css, transitions, animations);
-                // animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
+                var shortTransitions = cssInterpreter.interpret (css, transitions, element);
 
+                // The current CSS property is shorthand, so work with the new object instead
+                if (Object.keys (shortTransitions).length > 0) {
+                    for (var shortCSS in shortTransitions) {
+                        animator.addAnimation(generateAnimationObject (element, shortTransitions, shortCSS, animationId)).start();
+                        animationsForElement[shortCSS] = shortTransitions[shortCSS];
+                    }
+                }
 
-                // Store a shallow copy of the transitions object
-                // animationsForElement[css] = transitions[css];
+                else {
+                    animator.addAnimation (generateAnimationObject (element, transitions, css, animationId)).start ();
+
+                    // Don't accidentally override any shorthand that might have been extracted before
+                    if (!animationsForElement[css])
+                        animationsForElement[css] = transitions[css];
+                }
             }
 
             // Update the animations mapped to the element
-            animations[animationId] = processedTransitionsArray; // animationsForElement;
+            animations[animationId] = animationsForElement;
         }
 
         return this;
@@ -373,10 +383,21 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
     // Same as this.animate, but pushes animations to a queue and waits until the previous group is done to start the next anims.
     this.thenAnimate = function (element, transitions) {
-        var groupId;
-
         if (element && transitions) {
-            groupId = cssAnimationQueue.push (element, transitions);
+            var animationsForElement = {};
+
+            for (var css in transitions) {
+                var shortTransitions = cssInterpreter.interpret (css, transitions, element);
+
+                if (Object.keys (shortTransitions).length > 0) {
+                    for (var shortCSS in shortTransitions)
+                        animationsForElement[shortCSS] = shortTransitions[shortCSS];
+                }
+
+                else animationsForElement[css] = transitions[css];
+            }
+
+            cssAnimationQueue.push (element, animationsForElement);
 
             // Update the animator on the new active group
             if (cssAnimationQueue.updateAnimator)
@@ -1261,6 +1282,47 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             function mod (a, b) {return (b + (a % b)) % b}
         };
 
+        // Method for checking if a CSS value is of a unit type (e.g. "5px", "3%", etc.)
+        this.isUnit = function (cssValue) {
+            var cssVal = '' + cssValue,
+                number = cssVal.match (ONE_CSS_NUMBER_PATTERN),
+                unit = cssVal.match (/\D+$/);
+
+            return unit && number || number && +number[0] === 0;
+        };
+
+        // Does the same as this.colorCast, but does not convert the CSS value to an array
+        this.isColor = function (cssValue) {
+            var css = cssValue.toLowerCase ();
+
+            // CSS color keyword
+            if (COLOR_MAP[css])
+                return true;
+
+            // #rgb or #rrggbb notation
+            else if (css.match (/^#/))
+                return true;
+
+            // rgb() notation
+            else if (css.match (/rgb(\s|\t)*\(/)) 
+                return true;
+
+            // rgba() notation
+            else if (css.match (/rgba(\s|\t)*\(/)) 
+                return true;
+
+            // hsl() notation
+            else if (css.match (/hsl(\s|\t)*\(/)) 
+                return true;
+
+            // hsla() notation
+            else if (css.match (/hsla(\s|\t)*\(/)) 
+                return true;
+
+            // Value fed is not a valid color
+            else return false;
+        };
+
         // https://github.com/ryanve/res/blob/master/res.js
         function dpi () {
             const one = {dpi: 96, dpcm: 96 / 2.54};
@@ -1308,86 +1370,142 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 'color': 'border-color'
             },
 
-            'border-radius': {
-                'canonical-order': {
-                    // TODO: Figure out what to do with '/' symbol that can be thrown in here...
-                }
-            },
-
             'border-style': {
                 'canonical-order': {
-                    1: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
-                    2: ['border-top-style', 'border-bottom-style', 'border-left-style', 'border-right-style'],
-                    3: ['border-top-style', 'border-left-style', 'border-right-style', 'border-bottom-style'],
-                    4: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']
+                    1: [['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']],
+                    2: [['border-top-style', 'border-bottom-style'], ['border-left-style', 'border-right-style']],
+                    3: [['border-top-style'], ['border-left-style', 'border-right-style'], ['border-bottom-style']],
+                    4: [['border-top-style'], ['border-right-style'], ['border-bottom-style'], ['border-left-style']]
                 }
             },
 
             borderStyle: {
                 'canonical-order': {
-                    1: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
-                    2: ['border-top-style', 'border-bottom-style', 'border-left-style', 'border-right-style'],
-                    3: ['border-top-style', 'border-left-style', 'border-right-style', 'border-bottom-style'],
-                    4: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']
+                    1: [['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']],
+                    2: [['border-top-style', 'border-bottom-style'], ['border-left-style', 'border-right-style']],
+                    3: [['border-top-style'], ['border-left-style', 'border-right-style'], ['border-bottom-style']],
+                    4: [['border-top-style'], ['border-right-style'], ['border-bottom-style'], ['border-left-style']]
                 }
             },
 
             margin: {
                 'canonical-order': {
-                    1: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'],
-                    2: ['margin-top', 'margin-bottom', 'margin-left', 'margin-right'],
-                    3: ['margin-top', 'margin-left', 'margin-right', 'margin-bottom'],
-                    4: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left']
+                    1: [['margin-top', 'margin-right', 'margin-bottom', 'margin-left']],
+                    2: [['margin-top', 'margin-bottom'], ['margin-left', 'margin-right']],
+                    3: [['margin-top'], ['margin-left', 'margin-right'], ['margin-bottom']],
+                    4: [['margin-top'], ['margin-right'], ['margin-bottom'], ['margin-left']]
                 }
             },
 
             padding: {
                 'canonical-order': {
-                    1: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
-                    2: ['padding-top', 'padding-bottom', 'padding-left', 'padding-right'],
-                    3: ['padding-top', 'padding-left', 'padding-right', 'padding-bottom'],
-                    4: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left']
+                    1: [['padding-top', 'padding-right', 'padding-bottom', 'padding-left']],
+                    2: [['padding-top', 'padding-bottom'], ['padding-left', 'padding-right']],
+                    3: [['padding-top'], ['padding-left', 'padding-right'], ['padding-bottom']],
+                    4: [['padding-top'], ['padding-right'], ['padding-bottom'], ['padding-left']]
                 }
             }
         };
 
-        // TODO: Finish developing this baby
-        this.interpret = function (css, transitions, resultContainer, animationId) {
+        // Decomposes shorthand CSS values like "border" into their CSS sub-components like "border-width", "border-style", etc.
+        this.interpret = function (css, transitions, el) {
             var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING),
-                decomStart = decompositionOf ('' + trans[START_VALUE]),
-                decomEnd = decompositionOf ('' + trans[END_VALUE]);
+                tStrStart = '' + trans[START_VALUE],
+                tStrEnd = '' + trans[END_VALUE];
+
+            // Convert "current" string values to CSS values read straight from the DOM
+            tStrStart = tStrStart === 'current'? el.style[css] : tStrStart;
+            tStrEnd = tStrEnd === 'current'? el.style[css] : tStrEnd;
+
+            var decomStart = decompositionOf (tStrStart),
+                decomEnd = decompositionOf (tStrEnd),
+
+                startLen = decomStart.length,
+                endLen = decomEnd.length;
 
             // All of the new CSS values and transitions extracted from decomposing them are stored here
-            var processedTrans = {}
+            var processedTrans = {};
 
             // Go through each extracted value of shorthand and create its simpler CSS property based off the master CSS list
-            if (decomStart.length > 1) {
-                if (CSS_SHORTHAND_OF[css]) {
+            if (startLen === endLen && startLen > 1) {
+                // Process both start and end shorthands and then send them to the animator
+                checkShorthand (true);
+                checkShorthand (false);
+            }
 
+            // Throw an error because both values should use shorthand if applicable
+            else if (startLen !== endLen) 
+                throw 'Start CSS shorthand length (' + startLen + ') does not equal end CSS shorthand length (' + endLen + ')';
+
+            function checkShorthand (isStart) {
+                var decom = isStart? decomStart : decomEnd,
+                    IDX = isStart? START_VALUE : END_VALUE;
+
+                if (CSS_SHORTHAND_OF[css]) {
+                    // The CSS shorthand given has canonical order, so order of values given matters
+                    if (CSS_SHORTHAND_OF[css]['canonical-order']) {
+                        // The user has given a valid number of canonical-order values
+                        if (CSS_SHORTHAND_OF[css]['canonical-order'][decom.length]) {
+                            var orderedCSSArray = CSS_SHORTHAND_OF[css]['canonical-order'][decom.length];
+
+                            for (var i = 0; i < orderedCSSArray.length; i++) {
+                                var parentCSSAssignedArray = orderedCSSArray[i];
+
+                                for (var j = 0; j < parentCSSAssignedArray.length; j++) {
+                                    if (!processedTrans[parentCSSAssignedArray[j]])
+                                        processedTrans[parentCSSAssignedArray[j]] = shallowArrayClone (trans);
+
+                                    processedTrans[parentCSSAssignedArray[j]][IDX] = decom[i];
+                                }
+                            }
+                        }
+
+                        // The user has given more values than the specification allows
+                        else throw 'Too many values (' + decom.length + ') given for "' + css + '" shorthand.';
+                    }
+
+                    // Otherwise determine the unit type and attempt to find what CSS properties are associated with them
+                    else {
+                        for (var i = 0; i < decom.length; i++) {
+                            // The ith decompositional value is a keyword for the CSS property (e.g. "dotted" for "border-style")
+                            if (CSS_SHORTHAND_OF[css][decom[i]]) {
+                                if (!processedTrans[CSS_SHORTHAND_OF[css][decom[i]]])
+                                    processedTrans[CSS_SHORTHAND_OF[css][decom[i]]] = shallowArrayClone (trans);
+
+                                processedTrans[CSS_SHORTHAND_OF[css][decom[i]]][IDX] = decom[i];
+                            }
+
+                            // The ith decompositional value is a color value (e.g. "#eee", "red", "rgba(255,255,255,0.5)", etc.)
+                            else if (cssUnitCaster.isColor (decom[i])) {
+                                if (CSS_SHORTHAND_OF[css].color) {
+                                    if (!processedTrans[CSS_SHORTHAND_OF[css].color])
+                                        processedTrans[CSS_SHORTHAND_OF[css].color] = shallowArrayClone (trans);
+
+                                    processedTrans[CSS_SHORTHAND_OF[css].color][IDX] = decom[i];
+                                }
+
+                                else throw 'There is no color value associated with CSS property "' + css + '"';
+                            }
+
+                            // The ith decompositional value is a unit value (e.g. "3px", "4em", "1%", etc.)
+                            else if (cssUnitCaster.isUnit (decom[i])) {
+                                if (CSS_SHORTHAND_OF[css].unit) {
+                                    if (!processedTrans[CSS_SHORTHAND_OF[css].unit])
+                                        processedTrans[CSS_SHORTHAND_OF[css].unit] = shallowArrayClone (trans);
+
+                                    processedTrans[CSS_SHORTHAND_OF[css].unit][IDX] = decom[i];
+                                }
+
+                                else throw 'There is no unit value associated with CSS property "' + css + '"';
+                            }
+                        }
+                    }
                 }
 
                 else throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
             }
 
-            // Same as decomStart
-            if (decomEnd.length > 1) {
-                if (CSS_SHORTHAND_OF[css]) {
-
-                }
-
-                else throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
-            }
-
-            // this.interpret was called from animator.animate, so 
-            if (arguments.length > 2) {
-                for (var transitionsArray in processedTrans)
-                    resultContainer[animationId++] = transitionsArray;
-
-                // Update the global ID tracker to avoid overriding these newly generated animations
-                idCounter = animationId;
-            }
-
-            // TODO: Add the processed transitions arrays to the animator
+            return processedTrans;
         };
 
         // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
@@ -1395,6 +1513,16 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             var decomposition = cssValue.match (NON_WHITESPACE);
 
             return decomposition? decomposition : [''];
+        }
+
+        // http://jsperf.com/new-array-vs-splice-vs-slice/113
+        function shallowArrayClone (a) {
+            var b = new Array (a.length),
+                i = a.length;
+
+            while (i--) b[i] = a[i];
+
+            return b;
         }
     }
 }
