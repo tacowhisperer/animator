@@ -158,6 +158,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Like 'exp-medium', but there is no sudden transition in speed from slow to fast
             'circular-valley':  function (x) {return 1 - Math.sqrt (1 - x * x)}
+
+            // Overshoots a bit from the target, then shifts back into place like a spring
+            // credit: https://github.com/julianshapiro/velocity/blob/master/velocity.js
+            spring:             function (x) {return 1 - (Math.cos (4.5 * Math.PI * x) * Math.exp (-6 * x))}
     };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
