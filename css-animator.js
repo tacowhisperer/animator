@@ -476,9 +476,9 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // Worker for the worker. Worker-ception.
         function cssAnimatorMethodWorkerWorker (id) {
-            var animationsForElement = animations[id];
+            var transitions = animations[id];
 
-            if (animationsForElement) {
+            if (transitions) {
                 // Only work with the CSS properties given during method call
                 if (cssProps.length) {
                     for (var i = 0; i < cssProps.length; i++) {
@@ -489,7 +489,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
                 // Unless none are specified, so work with all of them
                 else {
-                    for (var css in animationsForElement) {
+                    for (var css in transitions) {
                         if (animator.hasAnimation (animName (id, css)))
                             animator[animatorMethodName] (animName (id, css));
                     }
