@@ -316,10 +316,60 @@ function Animator (framesPerSecond) {
 
     // Makes the specified animation to be at the percentage given
     this.setAnimationTo = function (animationName, p) {
-        var animation = animations[animationName];
+        var a = animations[animationName];
 
-        if (animation && typeof p == 'number')
-            animation.frameGenerator.revertToPercentage (p);
+        if (a && typeof p == 'number') {
+            // Simulate 1 passthrough through the main loop so that changes are reflected
+            var fG = a.frameGenerator;
+
+            // First switch the frame generator to the new percentage
+            fG.revertToPercentage (p);
+
+            // Start the frame generator if it is not already started
+            if (!fG.isStarted ())
+                fG.start ();
+
+            var uA = a.updateArguments;
+
+            // Dirty fix to a dirty problem where remove animation works mid-function. Examine this in future projects
+            if (numKeysOf (a)) {
+                // Reflects the animation transform if the animation should be symmetric
+                if (!a.animationDirection && a.isSymmetric) {
+                    if (a.experiencedDirectionChange) {
+
+                        // Patches the discontinuity from flipping the animation in linear time
+                        var xStar = fG.calculateXStar (a.interpolationTransform, true);
+                        fG.revertToPercentage (xStar);
+                        uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - xStar));
+                    
+                        a.experiencedDirectionChange = false;
+                    }
+
+                    else uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - p));
+                }
+            
+                // Reflects the animation transform for either a symmetric or asymmetric animation
+                else {
+                    if (a.experiencedDirectionChange && a.isSymmetric) {
+
+                        // Patches the discontinuity from flipping the animation in linear time
+                        var xStar = fG.calculateXStar (a.interpolationTransform, false);
+                        fG.revertToPercentage (xStar);
+                        uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (xStar));
+
+                        a.experiencedDirectionChange = false;
+                    }
+
+                    else uA[uA.length - 1] = a.interpolator (a.startValue, a.endValue, a.interpolationTransform (p));
+                }
+
+                // Call the updater to do whatever it needs to do
+                a.updater.apply (a.updater, uA);
+
+                // Clear the interpolated value because it will no longer be used
+                uA[uA.length - 1] = null;
+            }
+        }
 
         return this;
     };
@@ -610,9 +660,10 @@ function Animator (framesPerSecond) {
         };
 
         // Generates the next value for i_t. Goes in the direction of the argument fed
-        this.next = function (isPositive) {
-            if (isNotPaused && isStarted) {
+        this.next = function (isPositive, forceNextValue) {
+            var supposedToGenerateNextValue = isNotPaused && isStarted;
 
+            if (supposedToGenerateNextValue || forceNextValue) {
                 var dt = (Date.now () - t_i - offset) * (isPositive? FORWARD : BACKWARD);
                 i_t = rk4 (i_t, FPMS, dt);
 
