@@ -157,7 +157,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
 
             // Like 'exp-medium', but there is no sudden transition in speed from slow to fast
-            'circular-valley':  function (x) {return 1 - Math.sqrt (1 - x * x)}
+            'circular-valley':  function (x) {return 1 - Math.sqrt (1 - x * x)},
 
             // Overshoots a bit from the target, then shifts back into place like a spring
             // credit: https://github.com/julianshapiro/velocity/blob/master/velocity.js
@@ -482,6 +482,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Same as this.setAnimationStateTo, but for the actively enqueued animation group
     this.setEnqueuedAnimationStateTo = function (percentage, cssProps) {
         cssAnimatorMethodEnqueuedWorker ('setAnimationTo', cssProps || [], percentage);
+        cssAnimatorMethodEnqueuedWorker ('playAnimation', cssProps || []);
 
         return this;
     };
@@ -517,7 +518,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                         var animationName = animName (id, cssProps[i]);
 
                         if (animator.hasAnimation (animationName))
-                            animator[animatorMethodName] (animationName, percentage);
+                            animator.start ()[animatorMethodName] (animationName, percentage);
                     }
                 }
 
@@ -527,7 +528,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                         var animationName = animName (id, css);
 
                         if (animator.hasAnimation (animationName))
-                            animator[animatorMethodName] (animationName, percentage);
+                            animator.start ()[animatorMethodName] (animationName, percentage);
                     }
                 }
 
