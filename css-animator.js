@@ -641,6 +641,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
                 if (startValue !== 'current')
                     el.style[cssProperty] = startValue;
+
+                animator.start ().playAnimation (animName (null, cssProperty, groupNumber));
             },
 
             onAnimationEnd:   function (el, cssProperty, s, endValue, groupNumber) {
@@ -650,8 +652,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 if (endValue !== 'current')
                     el.style[cssProperty] = endValue;
 
-                cssAnimationQueue.pop (groupNumber);
+                animator.start ().pauseAnimation (animName (null, cssProperty, groupNumber));
 
+                cssAnimationQueue.pop (groupNumber);
+                
                 // Update the animator on the new active group
                 if (cssAnimationQueue.updateAnimator)
                     updateAnimatorOnTheAnimationQueue ();
