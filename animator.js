@@ -83,7 +83,12 @@
  *
  *     setAnimationBackward - (animationName) <Makes the animation be interpolated negatively (1 -> 0)> [this object]
  *
- *     switchAnimationDirection - (animationName) <Makes the animation be interpolated in the opposite direction of its current state> [this object]
+ *     setAnimationTo - (animationName, percentage) <Makes the animation be at percentage of the way done regardless of the
+ *                                                   animation direction. Does nothing if the animation does not exist in the
+ *                                                   animiator, or if percentage is a number value> [this object]
+ *
+ *     switchAnimationDirection - (animationName) <Makes the animation be interpolated in the opposite direction of its current 
+ *                                                 state> [this object]
  *
  *     resetAnimation - (animationName) <Sets the animation to the 0% state> [this object]
  *
@@ -305,6 +310,16 @@ function Animator (framesPerSecond) {
             animation.experiencedDirectionChange = true;
             animation.previousDirectionWasForward = animation.animationDirection;
         }
+
+        return this;
+    };
+
+    // Makes the specified animation to be at the percentage given
+    this.setAnimationTo = function (animationName, p) {
+        var animation = animations[animationName];
+
+        if (animation && typeof p == 'number')
+            animation.frameGenerator.revertToPercentage (p);
 
         return this;
     };
