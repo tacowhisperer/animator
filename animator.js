@@ -660,10 +660,8 @@ function Animator (framesPerSecond) {
         };
 
         // Generates the next value for i_t. Goes in the direction of the argument fed
-        this.next = function (isPositive, forceNextValue) {
-            var supposedToGenerateNextValue = isNotPaused && isStarted;
-
-            if (supposedToGenerateNextValue || forceNextValue) {
+        this.next = function (isPositive) {
+            if (isNotPaused && isStarted) {
                 var dt = (Date.now () - t_i - offset) * (isPositive? FORWARD : BACKWARD);
                 i_t = rk4 (i_t, FPMS, dt);
 

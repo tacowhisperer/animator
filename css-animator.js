@@ -482,7 +482,6 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Same as this.setAnimationStateTo, but for the actively enqueued animation group
     this.setEnqueuedAnimationStateTo = function (percentage, cssProps) {
         cssAnimatorMethodEnqueuedWorker ('setAnimationTo', cssProps || [], percentage);
-        cssAnimatorMethodEnqueuedWorker ('playAnimation', cssProps || []);
 
         return this;
     };
