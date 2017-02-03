@@ -436,30 +436,58 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return this;
     };
 
+    // Flips the direction of the CSS animations associated with the given element
+    this.flipAnimationOf = function (element, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'switchAnimationDirection', arguments.length);
+
+        return this;
+    };
+
+    // Sets the state of all (or specified) CSS animations to the percentage given
+    this.setAnimationStateTo = function (element, percentage, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'setAnimationTo', arguments.length, null, percentage);
+
+        return this;
+    };
+
     // Stops all animations in the animation queue
     this.stopQueued = function () {
-        cssAnimatorMethodEnqueuedWorker ('removeAnimation');
+        cssAnimatorMethodEnqueuedWorker ('removeAnimation', []);
         cssAnimationQueue.clearQueue ();
 
         return this;
     };
 
     // Pauses all animations in the animation queue
-    this.pauseQueued = function () {
-        cssAnimatorMethodEnqueuedWorker ('pauseAnimation');
+    this.pauseQueued = function (cssProps) {
+        cssAnimatorMethodEnqueuedWorker ('pauseAnimation', cssProps || []);
 
         return this;
     };
 
     // Plays all animations in the animation queue
-    this.playQueued = function () {
-        cssAnimatorMethodEnqueuedWorker ('playAnimation');
+    this.playQueued = function (cssProps) {
+        cssAnimatorMethodEnqueuedWorker ('playAnimation', cssProps || []);
+
+        return this;
+    };
+
+    // Same as this.flipAnimationOf, but for the actively enqueued animation group
+    this.flipEnqueuedAnimation = function (cssProps) {
+        cssAnimatorMethodEnqueuedWorker ('switchAnimationDirection', cssProps || []);
+
+        return this;
+    };
+
+    // Same as this.setAnimationStateTo, but for the actively enqueued animation group
+    this.setEnqueuedAnimationStateTo = function (percentage, cssProps) {
+        cssAnimatorMethodEnqueuedWorker ('setAnimationTo', cssProps || [], percentage);
 
         return this;
     };
 
     // Modulates the main work of this.stop, this.pause, and this.play for the CSS Animator object
-    function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callerArgsLength, callback) {
+    function cssAnimatorMethodWorker (element, cssProps, animatorMethodName, callerArgsLength, callback, percentage) {
         // The user wanted to use the method only on a specific element
         if (callerArgsLength > 0) {
             // Only work with elements that have animations in the animator
@@ -486,34 +514,49 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 // Only work with the CSS properties given during method call
                 if (cssProps.length) {
                     for (var i = 0; i < cssProps.length; i++) {
-                        if (animator.hasAnimation (animName (id, cssProps[i])))
-                            animator[animatorMethodName] (animName (id, cssProps[i]));
+                        var animationName = animName (id, cssProps[i]);
+
+                        if (animator.hasAnimation (animationName))
+                            animator[animatorMethodName] (animationName, percentage);
                     }
                 }
 
                 // Unless none are specified, so work with all of them
                 else {
                     for (var css in transitions) {
-                        if (animator.hasAnimation (animName (id, css)))
-                            animator[animatorMethodName] (animName (id, css));
+                        var animationName = animName (id, css);
+
+                        if (animator.hasAnimation (animationName))
+                            animator[animatorMethodName] (animationName, percentage);
                     }
                 }
 
-                if (callback) callback (id);
+                if (typeof callback == 'function') callback (id);
             }
         }
     }
 
     // Modulates the main work of this.stopQueued, this.pauseQueued, and this.playQueued for the CSS Animator object
-    function cssAnimatorMethodEnqueuedWorker (methodName) {
+    function cssAnimatorMethodEnqueuedWorker (methodName, cssProps, percentage) {
         // There might not be an active group when called
         if (cssAnimationQueue.activeAnimationGroup) {
             var activeElement = cssAnimationQueue.activeAnimationGroup.getElement (),
                 activeTransitions = cssAnimationQueue.activeAnimationGroup.getTransitions (),
                 activeGroupId = cssAnimationQueue.activeAnimationGroup.getGroupId ();
 
-            for (var css in activeTransitions)
-                animator.start ()[methodName] (animName (null, css, activeGroupId));
+            // Only work with the specified CSS properties if given
+            if (Array.isArray (cssProps) && cssProps.length) {
+                for (var i = 0; i < cssProps.length; i++) {
+                    if (activeTransitions[cssProps[i]])
+                        animator.start ()[methodName] (animName (null, cssProps[i], activeGroupId), percentage);
+                }
+            }
+
+            // Do the method to all properties otherwise
+            else {
+                for (var css in activeTransitions)
+                    animator.start ()[methodName] (animName (null, css, activeGroupId), percentage);
+            }
         }
     }
 
