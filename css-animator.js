@@ -1017,7 +1017,6 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                     this.updateAnimator = true;
                     this.activeAnimationGroup = animationGroup;
                     this.activeAnimationGroup.activate ();
-                    this.previousAnimationGroup = false;
                 }
             }
 
