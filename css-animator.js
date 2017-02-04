@@ -206,6 +206,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             cornflowerblue:       [100, 149, 237, 1],
             cornsilk:             [255, 248, 220, 1],
             crimson:              [220,  20,  60, 1],
+            cyan:                 [  0, 255, 255, 1],
             darkblue:             [  0,   0, 139, 1],
             darkcyan:             [  0, 139, 139, 1],
             darkgoldenrod:        [184, 134,  11, 1],
@@ -266,6 +267,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             lightyellow:          [255, 255, 224, 1],
             limegreen:            [ 50, 205,  50, 1],
             linen:                [250, 240, 230, 1],
+            magenta:              [255,   0, 255, 1],
             mediumaquamarine:     [102, 205, 170, 1],
             mediumblue:           [  0,   0, 205, 1],
             mediumorchid:         [186,  85, 211, 1],
@@ -743,15 +745,15 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
      * Interpolates 2 valid CSS units
      */
     function cssInterpolate (v0, v1, q) {
-        var css0 = cssUnitCaster.colorCast (v0),
-            css1 = cssUnitCaster.colorCast (v1);
+        var css0 = cssUnitCaster.colorCast ('' + v0),
+            css1 = cssUnitCaster.colorCast ('' + v1);
 
         // This is going to be a color interpolation
         if (css0 && css1) 
             return rgbaInterpolate (css0, css1, q);
 
         // One value is a color and another value is a unit measurement
-        else if (css0 || css1)
+        else if (css0 || css1) 
             throw 'CSS values must both be either unit measurements or color values';
 
         // Both values must be unit measurements of sorts
@@ -1234,6 +1236,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         // Method for converting incoming css color values to RGBA arrays. Returns false if not a color
         this.colorCast = function (cssValue) {
             var css = cssValue.toLowerCase ();
+
+            // Assume that the value is being read straight from the DOM
+            if (css === '')
+                return COLOR_MAP.transparent;
 
             // CSS color keyword
             if (COLOR_MAP[css])
