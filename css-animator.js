@@ -404,7 +404,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             cssAnimationQueue.push (element, animationsForElement);
 
             // Update the animator on the new active group
-            if (cssAnimationQueue.updateAnimator)
+            if (cssAnimationQueue.updateAnimator) 
                 updateAnimatorOnTheAnimationQueue ();
         }
 
@@ -690,6 +690,9 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             for (var css in transitions)
                 animator.start ().addAnimation (generateEnqueuedAnimationObject (element, transitions, css, groupId));
         }
+
+        // Set the flag to false as the animator has been updated now
+        cssAnimationQueue.updateAnimator = false;
     }
 
     // Lets the user specify less detailed animation properties
@@ -1014,6 +1017,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                     this.updateAnimator = true;
                     this.activeAnimationGroup = animationGroup;
                     this.activeAnimationGroup.activate ();
+                    this.previousAnimationGroup = false;
                 }
             }
 
