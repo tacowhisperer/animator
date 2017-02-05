@@ -753,8 +753,16 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             return rgbaInterpolate (css0, css1, q);
 
         // One value is a color and another value is a unit measurement
-        else if (css0 || css1) 
-            throw 'CSS values must both be either unit measurements or color values';
+        else if (css0 || css1) {
+
+            if (!css0)
+                return rgbaInterpolate (COLOR_MAP.transparent, css1, q);
+
+            else if (!css1)
+                return rgbaInterpolate (css0, COLOR_MAP.transparent, q);
+
+            else throw 'CSS values must both be either unit measurements or color values';
+        }
 
         // Both values must be unit measurements of sorts
         else {
@@ -1236,10 +1244,6 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         // Method for converting incoming css color values to RGBA arrays. Returns false if not a color
         this.colorCast = function (cssValue) {
             var css = cssValue.toLowerCase ();
-
-            // Assume that the value is being read straight from the DOM
-            if (css === '')
-                return COLOR_MAP.transparent;
 
             // CSS color keyword
             if (COLOR_MAP[css])
