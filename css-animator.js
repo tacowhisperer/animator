@@ -462,6 +462,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Speeds up all (or specified) CSS animations by the factor given
     this.changeSpeedFactorTo = function (element, factor, cssProps) {
         cssAnimatorMethodWorker (element, cssProps || [], 'speedUpAnimation', arguments.length, null, factor);
+
+        return this;
     };
 
     // Stops all animations in the animation queue
@@ -1482,6 +1484,20 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 'no-repeat': 'background-repeat',
 
                 'color': 'background-color'
+            },
+
+            'background-position': {
+                'canonical-order': {
+                    1: [['background-position-x', 'background-position-y']],
+                    2: [['background-position-x'], ['background-position-y']]
+                }
+            },
+
+            backgroundPosition: {
+                'canonical-order': {
+                    1: [['background-position-x', 'background-position-y']],
+                    2: [['background-position-x'], ['background-position-y']]
+                }
             },
 
             border: {
