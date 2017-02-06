@@ -34,10 +34,14 @@
  *
  *                      endValue      - Ending value of the data to be animated
  *
- *                      interpolator  - Function that interpolates the starting and ending values. Arguments are provided
- *                                      in the following order: (startValue, endValue, p).
- *                                      The p argument is a number value in [0, 1] generated from within the animator to
- *                                      determine how far along the animation is complete.
+ *                      interpolator  - Function that interpolates the starting and ending values. Arguments are provided in the
+ *                                      following order: (startValue, endValue, p).
+ *
+ *                                      The p argument is a number value typically in [0, 1] generated from within the animator to
+ *                                      determine how far along the animation is complete. Although labeled as required, if no 
+ *                                      interpolator function is given, the default "rough" interpolation function (values less 
+ *                                      than 0.5 will use the first value, and values greater than 0.5 will use the second value)
+ *                                      will be used. Note that the "rough" interpolator may look very jarring.
  *
  *                      updater       - Function that gets called every time the animator is finished calculating frames.
  *                                      It uses the arguments provided in the updateArgs array (if provided), along with
@@ -199,7 +203,7 @@ function Animator (framesPerSecond) {
         anim.animationDirection     = !animationProps.animateNegatively;
         anim.startValue             = animationProps.startValue;
         anim.endValue               = animationProps.endValue;
-        anim.interpolator           = animationProps.interpolator;
+        anim.interpolator           = animationProps.interpolator || function (v0, v1, p) {return p < 0.5? v0 : v1};
         anim.updater                = animationProps.updater;
         anim.interpolationTransform = animationProps.interpolationTransform || function (v) {return v};
         anim.updateArguments        = animationProps.updateArguments? animationProps.updateArguments : [];
@@ -444,6 +448,14 @@ function Animator (framesPerSecond) {
         return this;
     };
 
+    // Speeds up the animation by the factor given
+    this.speedUpAnimation = function (animationName, factor) {
+        if (animations[animationName])
+            animations[animationName].frameGenerator.speedUpByFactor (factor);
+
+        return this;
+    };
+
     // Starts the main loop
     this.start = function () {
         if (!animatorIsStarted) {
@@ -559,6 +571,8 @@ function Animator (framesPerSecond) {
      *     updateOnAnimationStart - (newOnStart) <Makes the onAnimationStart callback newOnStart> [this object]
      *
      *     updateOnAnimationEnd   - (newOnEnd) <Makes the onAnimationEnd callback newOnEnd> [this object]
+     *
+     *     speedUpByFactor - (speedFactor) <Speeds up the frame generator by the factor given> [this object]
      */
     function FrameGenerator (numFrames, onAnimStart, onAnimEnd, updateArgs) {
         var n   = numFrames <= 0? 1 : numFrames,
@@ -727,6 +741,20 @@ function Animator (framesPerSecond) {
         // Updates the on animation end function
         this.updateOnAnimationEnd = function (newOnEnd) {
             oAE = newOnEnd;
+
+            return this;
+        };
+
+        // Changes the number of frames that the generator should produce by the factor given
+        this.speedUpByFactor = function (sp) {
+            var n_new = Math.ceil (n / Math.abs (sp));
+
+            // Update both i_t and n to avoid jumping in animation
+            i_t = i_t * n_new / n;
+            n = n_new;
+
+            // Prevents frame over/underflow and does callbacks for start/end. Can't be too safe.
+            boundCheck ();
 
             return this;
         };
