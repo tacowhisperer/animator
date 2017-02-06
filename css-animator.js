@@ -24,13 +24,13 @@
  *
  *             Valid Transitions Object Structures (cssPropX is a valid CSS property, and "..." means "and so on"):
  *                 {cssProp0: [startingCSSValue, targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
- *                 {cssProp0: [startingCSSValue, "current", numberOfFrames, easingFunctionName], cssProp1: [...], ...}
- *                 {cssProp0: ["current", targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *                 {cssProp0: [startingCSSValue, "currentValue", numberOfFrames, easingFunctionName], cssProp1: [...], ...}
+ *                 {cssProp0: ["currentValue", targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
  *                 {cssProp0: [targetCSSValue, numberOfFrames, easingFunctionName], cssProp1: [...], ...}
  *
  *                 {cssProp0: [startingCSSValue, targetCSSValue, numberOfFrames], cssProp1: [...], ...}
- *                 {cssProp0: [startingCSSValue, "current", numberOfFrames], cssProp1: [...], ...}
- *                 {cssProp0: ["current", targetCSSValue, numberOfFrames], cssProp1: [...], ...}
+ *                 {cssProp0: [startingCSSValue, "currentValue", numberOfFrames], cssProp1: [...], ...}
+ *                 {cssProp0: ["currentValue", targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *                 {cssProp0: [targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *
  *     thenAnimate - (element, transitions) <Animates and takes the same argument constructs as this.animate, but enqueues 
@@ -341,7 +341,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
      *
      * Transitions object format:
      *     transitions = {css0: [startVal, endVal, numFrames(, easing)], ...} ||
-     *     transitions = {css0: ["current", endVal, numFrames(, easing)], ...} ||
+     *     transitions = {css0: ["currentValue", endVal, numFrames(, easing)], ...} ||
      *     transitions = {css0: [endVal, numFrames(, easing)]}
      */
     this.animate = function (element, transitions) {
@@ -459,6 +459,11 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return this;
     };
 
+    // Speeds up all (or specified) CSS animations by the factor given
+    this.changeSpeedFactorTo = function (element, factor, cssProps) {
+        cssAnimatorMethodWorker (element, cssProps || [], 'speedUpAnimation', arguments.length, null, factor);
+    };
+
     // Stops all animations in the animation queue
     this.stopQueued = function () {
         cssAnimatorMethodEnqueuedWorker ('removeAnimation', []);
@@ -491,6 +496,13 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Same as this.setAnimationStateTo, but for the actively enqueued animation group
     this.setEnqueuedAnimationStateTo = function (percentage, cssProps) {
         cssAnimatorMethodEnqueuedWorker ('setAnimationTo', cssProps || [], percentage);
+
+        return this;
+    };
+
+    // Same as this.setAnimationStateTo, but for the actively enqueued animation group
+    this.setEnqueuedAnimationStateTo = function (factor, cssProps) {
+        cssAnimatorMethodEnqueuedWorker ('speedUpAnimation', cssProps || [], factor);
 
         return this;
     };
@@ -575,20 +587,21 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var START_VALUE = 0,
             END_VALUE = 1,
             NUM_FRAMES = 2,
-            EASING = 3;
+            EASING = 3,
+            USE_ROUGH = 4;
 
-        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
+        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
-        // Because the initial value can be "current", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
+        // Because the initial value can be "currentValue", get a valid css property to initialize the object
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? element.style[css] : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? element.style[css] : trans[END_VALUE];
         
 
         var animation = {
             animationName: animName (animationId, css),
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
-            interpolator:  cssInterpolate,
+            interpolator:  trans[USE_ROUGH]? false : cssInterpolate,
             numFrames:     trans[NUM_FRAMES],
             updater:       function (el, cssProperty, s, e, id, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
 
@@ -598,7 +611,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 // Update screen DPI in case of user zoom or whatnot
                 cssUnitCaster.updateDPI ();
 
-                if (sVal !== 'current') el.style[cssProperty] = sVal;
+                if (sVal !== 'currentValue') el.style[cssProperty] = sVal;
 
                 // Prevents regular animation calls from overriding enqueued animation calls
                 animator.start ().playAnimation (animName (id, cssProperty));
@@ -608,7 +621,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 // Update screen DPI in case of user zoom or whatnot
                 cssUnitCaster.updateDPI ();
 
-                if (endVal !== 'current') el.style[cssProperty] = endVal;
+                if (endVal !== 'currentValue') el.style[cssProperty] = endVal;
 
                 // Prevents regular animation calls from overriding enqueued animation calls
                 animator.start ().pauseAnimation (animName (id, cssProperty));
@@ -625,20 +638,21 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var START_VALUE = 0,
             END_VALUE = 1,
             NUM_FRAMES = 2,
-            EASING = 3;
+            EASING = 3,
+            USE_ROUGH = 4;
 
-        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING);
+        var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
-        // Because the initial value can be "current", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'current'? element.style[css] : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'current'? element.style[css] : trans[END_VALUE];
+        // Because the initial value can be "currentValue", get a valid css property to initialize the object
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? element.style[css] : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? element.style[css] : trans[END_VALUE];
 
 
         var animation = {
             animationName: animName (null, css, groupId),
             startValue:    currentCSSValueStart,
             endValue:      currentCSSValueEnd,
-            interpolator:  cssInterpolate,
+            interpolator:  trans[USE_ROUGH]? false : cssInterpolate,
             numFrames:     trans[NUM_FRAMES],
             updater:       function (el, cssProperty, s, e, gN, interpolCSSValue) {el.style[cssProperty] = interpolCSSValue},
 
@@ -648,7 +662,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 // Update DPI in case of user zoom or whatnot
                 cssUnitCaster.updateDPI ();
 
-                if (startValue !== 'current')
+                if (startValue !== 'currentValue')
                     el.style[cssProperty] = startValue;
 
                 animator.start ().playAnimation (animName (null, cssProperty, groupNumber));
@@ -658,7 +672,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 // Update DPI in case of user zoom or whatnot
                 cssUnitCaster.updateDPI ();
 
-                if (endValue !== 'current')
+                if (endValue !== 'currentValue')
                     el.style[cssProperty] = endValue;
 
                 animator.start ().pauseAnimation (animName (null, cssProperty, groupNumber));
@@ -705,11 +719,20 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     }
 
     // Lets the user specify less detailed animation properties
-    function extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING) {
-        var trans = [null, null, null, null];
+    function extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH) {
+        var trans = [null, null, null, null, false];
+
+        // [startValue, endValue, numFrames, easing, useRough]
+        if (transitions[css].length == 5) {
+            trans[START_VALUE] = transitions[css][0];
+            trans[END_VALUE] = transitions[css][1];
+            trans[NUM_FRAMES] = transitions[css][2];
+            trans[EASING] = transitions[css][3];
+            trans[USE_ROUGH] = transitions[css][4];
+        }
 
         // [startValue, endValue, numFrames, easing]
-        if (transitions[css].length == 4) {
+        else if (transitions[css].length == 4) {
             trans[START_VALUE] = transitions[css][0];
             trans[END_VALUE] = transitions[css][1];
             trans[NUM_FRAMES] = transitions[css][2];
@@ -719,7 +742,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         else if (transitions[css].length == 3) {
             // [endValue, numFrames, easingName]
             if (typeof TRANSFORMS[transitions[css][2]] == 'function') {
-                trans[START_VALUE] = 'current';
+                trans[START_VALUE] = 'currentValue';
                 trans[END_VALUE] = transitions[css][0];
                 trans[NUM_FRAMES] = transitions[css][1];
                 trans[EASING] = transitions[css][2];
@@ -736,7 +759,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // [endValue, numFrames]
         else if (transitions[css].length == 2) {
-            trans[START_VALUE] = 'current';
+            trans[START_VALUE] = 'currentValue';
             trans[END_VALUE] = transitions[css][0];
             trans[NUM_FRAMES] = transitions[css][1];
             trans[EASING] = false;
@@ -1219,7 +1242,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 var u = unit,
                     n = numberValue;
 
-                if (u === 'in')
+                if (u === 'px')
+                    return n;
+
+                else if (u === 'in')
                     return n * dpiObject.dpi;
 
                 else if (u === 'cm')
@@ -1417,6 +1443,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             else return false;
         };
 
+
         // https://github.com/ryanve/res/blob/master/res.js
         function dpi () {
             var one = {dpi: 96, dpcm: 96 / 2.54};
@@ -1441,24 +1468,23 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var START_VALUE = 0,
             END_VALUE = 1,
             NUM_FRAMES = 2,
-            EASING = 3;
+            EASING = 3,
+            USE_ROUGH = 4;
 
         // List of common CSS shorthands to quickly transition from one value to another
         var CSS_SHORTHAND_OF = {
             background: {
-                /* Support for non-unit values not implemented yet
                 'repeat-x': 'background-repeat',
                 'repeat-y': 'background-repeat',
                 repeat: 'background-repeat',
                 space: 'background-repeat',
                 round: 'background-repeat',
-                'no-repeat': 'background-repeat',*/
+                'no-repeat': 'background-repeat',
 
                 'color': 'background-color'
             },
 
             border: {
-                /* Support for non-unit values not implemented yet
                 none: 'border-style',
                 hidden: 'border-style',
                 dotted: 'border-style',
@@ -1468,7 +1494,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 groove: 'border-style',
                 ridge: 'border-style',
                 inset: 'border-style',
-                outset: 'border-style',*/
+                outset: 'border-style',
 
                 'unit': 'border-width',
                 'color': 'border-color'
@@ -1522,13 +1548,13 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
         // Decomposes shorthand CSS values like "border" into their CSS sub-components like "border-width", "border-style", etc.
         this.interpret = function (css, transitions, el) {
-            var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING),
+            var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH),
                 tStrStart = '' + trans[START_VALUE],
                 tStrEnd = '' + trans[END_VALUE];
 
-            // Convert "current" string values to CSS values read straight from the DOM
-            tStrStart = tStrStart === 'current'? el.style[css] : tStrStart;
-            tStrEnd = tStrEnd === 'current'? el.style[css] : tStrEnd;
+            // Convert "currentValue" string values to CSS values read straight from the DOM
+            tStrStart = tStrStart === 'currentValue'? el.style[css] : tStrStart;
+            tStrEnd = tStrEnd === 'currentValue'? el.style[css] : tStrEnd;
 
             var decomStart = decompositionOf (tStrStart),
                 decomEnd = decompositionOf (tStrEnd),
@@ -1540,15 +1566,17 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             var processedTrans = {};
 
             // Go through each extracted value of shorthand and create its simpler CSS property based off the master CSS list
-            if (startLen === endLen && startLen > 1) {
-                // Process both start and end shorthands and then send them to the animator
-                checkShorthand (true);
-                checkShorthand (false);
-            }
+            checkShorthand (true);
+            checkShorthand (false);
 
-            // Throw an error because both values should use shorthand if applicable
-            else if (startLen !== endLen) 
-                throw 'Start CSS shorthand length "' + tStrStart + '" does not equal end CSS shorthand length "' + tStrEnd + '"';
+            // Warn the user that the starting and ending arguments of the given CSS shorthand are not the same and are not known
+            // if (startLen !== endLen) {
+            //     var s0 = '%cWarning: CSS Property "' + css + '" does not have equal starting argument length ',
+            //         s1 = '("' + tStrStart + '" of length ' + startLen + ') as ending argument length ',
+            //         s3 = '("' + tStrEnd + '" of length ' + endLen + ')';
+                
+            //     console.log (s0 + s1 + s3, 'color:orange');
+            // }
 
             function checkShorthand (isStart) {
                 var decom = isStart? decomStart : decomEnd,
@@ -1586,6 +1614,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                                     processedTrans[CSS_SHORTHAND_OF[css][decom[i]]] = shallowArrayClone (trans);
 
                                 processedTrans[CSS_SHORTHAND_OF[css][decom[i]]][IDX] = decom[i];
+                                processedTrans[CSS_SHORTHAND_OF[css][decom[i]]][USE_ROUGH] = true;
                             }
 
                             // The ith decompositional value is a color value (e.g. "#eee", "red", "rgba(255,255,255,0.5)", etc.)
@@ -1615,10 +1644,22 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                     }
                 }
 
-                else throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
+                else if (decom.length > 1) {
+                    // throw 'Unknown CSS shorthand property "' + css + '". Add to the CSS_SHORTHAND_OF object if applicable.';
+                    if (!processedTrans[css])
+                        processedTrans[css] = shallowArrayClone (trans);
+
+                    processedTrans[css][IDX] = isStart? tStrStart : tStrEnd;
+                    processedTrans[css][USE_ROUGH] = true;
+                }
             }
 
             return processedTrans;
+        };
+
+        // Method for checking if a CSS value is one that does not have any units associated with it
+        this.isValidNonUnit = function (css, cssValue) {
+
         };
 
         // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
