@@ -3,6 +3,7 @@ document.addEventListener ('DOMContentLoaded', function (loadedEvent) {
 		numFrames = 11,
 		anim = new CSSAnimator (),
 		color = 0,
+		focusIn = false;
 		rainbow = ['red', 'green', 'blue'];
 
 
@@ -15,6 +16,10 @@ document.addEventListener ('DOMContentLoaded', function (loadedEvent) {
 	});
 
 	e.addEventListener ('mousedown', function (ev) {
-		anim.animate (e, {'background-color': [rainbow[++color % rainbow.length], numFrames, 'trig']});
+		if (ev.which === 1) {
+			focusIn = !focusIn;
+			anim.animate (e, {'background-color': [rainbow[++color % rainbow.length], numFrames, 'trig'],
+							  'border': [focusIn? '10px dotted black' : '0px solid white', numFrames, 'spring']});
+		}
 	});
 });
