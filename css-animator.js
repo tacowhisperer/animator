@@ -46,11 +46,29 @@
  *                                      are given, and plays all paused properties of all elements if no arguments are provided>
  *                                      [this object]
  *
+ *     flipAnimationOf - (element, cssProperties) <Reverses the animation direction of the animations attached to the specified
+ *                                                 element> [this object]
+ *
+ *     setAnimationStateTo - (element, percentage, cssProperties) <Sets the state of all (or the optionally given CSS properties
+ *                                                                 in an array) to the percentage specified (number in [0, 1])
+ *                                                                 given> [this object]
+ *
+ *     changeDurationOf - (element, factor, cssProperties) <Changes the duration of the animation by the factor given> [this obj]
+ *
  *     stopQueued - () <Stops the currently active enqueued animation, and clears the animation queue> [this object]
  *
  *     pauseQueued - () <Pauses the currently active enqueued animation, and prevents progression on the queue> [this object]
  *
  *     playQueued - () <Plays the currently active enqueued animation, and continues the enqueue-dequeue process> [this object]
+ *
+ *     flipEnqueuedAnimation - (cssProperties) <Same as flipAnimationOf, but for the active animation group from the animation
+ *                                              queue> [this object]
+ *
+ *     setEnqueuedAnimationStateTo - (percentage, cssProperties) <Same as setAnimationStateTo, but for the active animation group
+ *                                                                from the animation queue> [this object]
+ *
+ *     changeEnqueuedDurationOf - (factor, cssProperties) <Same as changeDurationOf, but for the active animation group from the
+ *                                                         animation queue> [this object]
  */
 function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     var animator = new Animator (typeof framesPerSecond == 'number'? framesPerSecond : 60),
@@ -460,7 +478,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     };
 
     // Speeds up all (or specified) CSS animations by the factor given
-    this.changeSpeedFactorTo = function (element, factor, cssProps) {
+    this.changeDurationOf = function (element, factor, cssProps) {
         cssAnimatorMethodWorker (element, cssProps || [], 'speedUpAnimation', arguments.length, null, factor);
 
         return this;
@@ -502,8 +520,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return this;
     };
 
-    // Same as this.changeSpeedFactorTo, but for the actively enqueued animation group
-    this.changeEnqueuedSpeedFactorTo = function (factor, cssProps) {
+    // Same as this.changeDurationOf, but for the actively enqueued animation group
+    this.changeEnqueuedDurationOf = function (factor, cssProps) {
         cssAnimatorMethodEnqueuedWorker ('speedUpAnimation', cssProps || [], factor);
 
         return this;
@@ -932,9 +950,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     function cssAnimatorId (animationId) {return CSS_ANIMATOR_ID + '->' + animationId}
 
     // Removes the need to keep track of naming conventions
-    function animName (animationId, cssProperty, groupId) {
-        return cssAnimatorId ((arguments.length > 2? groupId + '->': animationId)) + '->' + cssProperty;
-    }
+    function animName (aID, css, gID) {return cssAnimatorId ((arguments.length > 2? gID + '->': aID)) + '->' + css}
 
     // Used to distinguish between different animator objects (assumes a synchronous web browser)
     function uniqueAnimatorIdentification () {return Date.now ()}
