@@ -116,22 +116,28 @@ function Animator (framesPerSecond) {
         continueLooping = false;
 
     function mainLoop () {
+        var animationsToDelete = [];
 
-        // Update each animation
+        // Update each animation that should be in the animator
         for (var anim in animations) {
-            var a = animations[anim], fG = a.frameGenerator;
+            // Skip over animations that will be removed from the animations object
+            if (animations[anim].setForDeletion)
+                animationsToDelete.push (anim);
 
-            // Start the frame generator if it is not already started
-            if (!fG.isStarted ())
-                fG.start ();
+            // Update the state of the animation if not marked for deletion
+            else {
+                var a = animations[anim], fG = a.frameGenerator;
 
-            // Only update values if the animation is not paused
-            if (a.isActive && !fG.isPaused ()) {
-                var uA = a.updateArguments,
-                    p = fG.next (a.animationDirection).percent ();
+                // Start the frame generator if it is not already started
+                if (!fG.isStarted ())
+                    fG.start ();
 
-                // Dirty fix to a dirty problem where remove animation works mid-function. Examine this in future projects
-                if (numKeysOf (a)) {
+                // Only update values if the animation is not paused
+                if (a.isActive && !fG.isPaused ()) {
+                    var uA = a.updateArguments,
+                        p = fG.next (a.animationDirection).percent ();
+
+                    
                     // Reflects the animation transform if the animation should be symmetric
                     if (!a.animationDirection && a.isSymmetric) {
                         if (a.experiencedDirectionChange) {
@@ -139,7 +145,7 @@ function Animator (framesPerSecond) {
                             // Patches the discontinuity from flipping the animation in linear time
                             var xStar = fG.calculateXStar (a.interpolationTransform, true);
                             fG.revertToPercentage (xStar);
-                            uA[uA.length - 1] = a.interpolator (a.endValue, a.startValue, a.interpolationTransform (1 - xStar));
+                            uA[uA.length - 1] = a.interpolator(a.endValue, a.startValue, a.interpolationTransform(1 - xStar));
                         
                             a.experiencedDirectionChange = false;
                         }
@@ -170,6 +176,10 @@ function Animator (framesPerSecond) {
                 }
             }
         }
+
+        // Delete animations that should no longer be with the animator
+        for (var i = 0; i < animationsToDelete.length; i++)
+            delete animations[animationsToDelete[i]];
 
         // Continue looping if necessary
         if (continueLooping)
@@ -216,6 +226,9 @@ function Animator (framesPerSecond) {
         if (!anim.isActive)
             anim.frameGenerator.pause ();
 
+        // Used to avoid unexpected behavior in the main loop
+        anim.setForDeletion = false;
+
         return this;
     };
 
@@ -229,14 +242,10 @@ function Animator (framesPerSecond) {
 
     // Removes an animation from the animations object
     this.removeAnimation = function (animationName) {
-        if (animations[animationName]) {
-            // Delete each sub-property to prevent memory leakage
-            for (var prop in animations[animationName])
-                delete animations[animationName][prop];
+        var animation = animations[animationName];
 
-            // Delete the main property and call it history
-            delete animations[animationName];
-        }
+        if (animation) 
+            animation.setForDeletion = true;
 
         return this;
     };
