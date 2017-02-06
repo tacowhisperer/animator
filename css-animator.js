@@ -1500,6 +1500,24 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 'color': 'border-color'
             },
 
+            'border-radius': {
+                'canonical-order': {
+                    1: [['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius']],
+                    2: [['border-top-left-radius', 'border-bottom-right-radius'], ['border-top-right-radius', 'border-bottom-left-radius']],
+                    3: [['border-top-left-radius'], ['border-top-right-radius', 'border-bottom-left-radius'], ['border-bottom-right-radius']],
+                    4: [['border-top-left-radius'], ['border-top-right-radius'], ['border-bottom-right-radius'], ['border-bottom-left-radius']]
+                }
+            },
+
+            borderRadius: {
+                'canonical-order': {
+                    1: [['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius']],
+                    2: [['border-top-left-radius', 'border-bottom-right-radius'], ['border-top-right-radius', 'border-bottom-left-radius']],
+                    3: [['border-top-left-radius'], ['border-top-right-radius', 'border-bottom-left-radius'], ['border-bottom-right-radius']],
+                    4: [['border-top-left-radius'], ['border-top-right-radius'], ['border-bottom-right-radius'], ['border-bottom-left-radius']]
+                }
+            },
+
             'border-style': {
                 'canonical-order': {
                     1: [['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']],
