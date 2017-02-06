@@ -500,8 +500,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return this;
     };
 
-    // Same as this.setAnimationStateTo, but for the actively enqueued animation group
-    this.setEnqueuedAnimationStateTo = function (factor, cssProps) {
+    // Same as this.changeSpeedFactorTo, but for the actively enqueued animation group
+    this.changeEnqueuedSpeedFactorTo = function (factor, cssProps) {
         cssAnimatorMethodEnqueuedWorker ('speedUpAnimation', cssProps || [], factor);
 
         return this;
@@ -1655,11 +1655,6 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             }
 
             return processedTrans;
-        };
-
-        // Method for checking if a CSS value is one that does not have any units associated with it
-        this.isValidNonUnit = function (css, cssValue) {
-
         };
 
         // Splits incoming CSS values into their separate value (e.g. border: 1px solid black -> ["1px", "solid", "black"])
