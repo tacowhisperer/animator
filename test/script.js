@@ -15,6 +15,6 @@ document.addEventListener ('DOMContentLoaded', function (loadedEvent) {
 	});
 
 	e.addEventListener ('mousedown', function (ev) {
-		anim.animate (e, {'background-color': [rainbow[color++ % rainbow.length], numFrames, 'trig']});
+		anim.animate (e, {'background-color': [rainbow[++color % rainbow.length], numFrames, 'trig']});
 	});
 });

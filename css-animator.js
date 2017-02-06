@@ -358,6 +358,13 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             // Adding the value directly to the element as a property allows for the method to be chainable (return this)
             animationId = element.customCSSAnimationIdentification;
 
+            if (animations[animationId]) {
+                var oldTransitions = animations[animationId];
+
+                for (var css in oldTransitions) 
+                    animator.removeAnimation (animName (animationId, css));
+            }
+
             // Get every animation that is given in the transitions object
             var animationsForElement = {};
             for (var css in transitions) {
