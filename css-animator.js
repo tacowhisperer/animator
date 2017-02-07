@@ -95,7 +95,7 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
 
             // Slower, gentle start to faster than linear halfway to slower, gentle finish
-            trig:               function (x) {return 0.5 * (1 - Math.cos (Math.PI * x))},
+            trig:               function (x) {return 1 - Math.cos (Math.PI * x / 2)},
 
 
 
