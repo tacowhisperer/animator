@@ -179,7 +179,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
             // Overshoots a bit from the target, then shifts back into place like a spring
             // credit: https://github.com/julianshapiro/velocity/blob/master/velocity.js
-            spring:             function (x) {return 1 - (Math.cos (4.5 * Math.PI * x) * Math.exp (-6 * x))}
+            spring:             function (x) {return 1 - (Math.cos (4.5 * Math.PI * x) * Math.exp (-6 * x))},
+
+            // Like spring, but instetad bounces in place a bit, then shoots straight to the target
+            // credit: jQuery UI
+            elastic:            function (x) {
+                                    if (x <= 0)
+                                        return 0;
+
+                                    else if (x >= 1)
+                                        return 1;
+
+                                    return -Math.pow(2, 8 * (x - 1)) * Math.sin(Math.PI / 15 * (82.5 * (x - 1) - 7.5))
+                                }
     };
 
     // A map of all valid CSS color keywords to their corresponding RGBA array
