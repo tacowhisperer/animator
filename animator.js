@@ -230,7 +230,7 @@ function Animator (framesPerSecond) {
         if (!anim.isActive)
             anim.frameGenerator.pause ();
 
-        // Used to avoid unexpected behavior in the main loop
+        // Used to avoid unexpected behavior in the main loop caused by simply removing the animation from the animation object
         anim.setForDeletion = false;
 
         return this;
