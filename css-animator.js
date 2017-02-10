@@ -33,6 +33,8 @@
  *                 {cssProp0: ["currentValue", targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *                 {cssProp0: [targetCSSValue, numberOfFrames], cssProp1: [...], ...}
  *
+ *                 {cssProp0: {startValue: START_VALUE, endValue: END_VALUE, numFrames: NUM_FRAMES, easing: EASING_NAME}}
+ *
  *     thenAnimate - (element, transitions) <Animates and takes the same argument constructs as this.animate, but enqueues 
  *                                           transitions and does them in order instead of doing them concurrently> [this object]
  *
@@ -388,12 +390,12 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
             // Adding the value directly to the element as a property allows for the method to be chainable (return this)
             animationId = element.customCSSAnimationIdentification;
 
-            if (animations[animationId]) {
-                var oldTransitions = animations[animationId];
+            // if (animations[animationId]) {
+            //     var oldTransitions = animations[animationId];
 
-                for (var css in oldTransitions) 
-                    animator.removeAnimation (animName (animationId, css));
-            }
+            //     for (var css in oldTransitions) 
+            //         animator.removeAnimation (animName (animationId, css));
+            // }
 
             // Get every animation that is given in the transitions object
             var animationsForElement = {};
@@ -617,10 +619,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     function generateAnimationObject (element, transitions, css, animationId) {
         // Index values of the transitions object arrays (see this.animate for more details)
         var START_VALUE = 0,
-            END_VALUE = 1,
-            NUM_FRAMES = 2,
-            EASING = 3,
-            USE_ROUGH = 4;
+            END_VALUE   = 1,
+            NUM_FRAMES  = 2,
+            EASING      = 3,
+            USE_ROUGH   = 4;
 
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
@@ -668,10 +670,10 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
     // Generates an animation object of a given element and properties to animate for the animation queue
     function generateEnqueuedAnimationObject (element, transitions, css, groupId) {
         var START_VALUE = 0,
-            END_VALUE = 1,
-            NUM_FRAMES = 2,
-            EASING = 3,
-            USE_ROUGH = 4;
+            END_VALUE   = 1,
+            NUM_FRAMES  = 2,
+            EASING      = 3,
+            USE_ROUGH   = 4;
 
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
@@ -752,53 +754,77 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
 
     // Lets the user specify less detailed animation properties
     function extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH) {
+        // Default values for items not given when called
+        var DEFAULT_START  = 'currentValue',
+            DEFAULT_END    = 'currentValue',
+            DEFAULT_FRAMES = 11,
+            DEFAULT_EASING = false,
+            DEFAULT_ROUGH  = false;
+
+        // Array for standardizing all valid forms of input
         var trans = [null, null, null, null, false];
 
-        // [startValue, endValue, numFrames, easing, useRough]
-        if (transitions[css].length == 5) {
-            trans[START_VALUE] = transitions[css][0];
-            trans[END_VALUE] = transitions[css][1];
-            trans[NUM_FRAMES] = transitions[css][2];
-            trans[EASING] = transitions[css][3];
-            trans[USE_ROUGH] = transitions[css][4];
-        }
-
-        // [startValue, endValue, numFrames, easing]
-        else if (transitions[css].length == 4) {
-            trans[START_VALUE] = transitions[css][0];
-            trans[END_VALUE] = transitions[css][1];
-            trans[NUM_FRAMES] = transitions[css][2];
-            trans[EASING] = transitions[css][3];
-        }
-
-        else if (transitions[css].length == 3) {
-            // [endValue, numFrames, easingName]
-            if (typeof TRANSFORMS[transitions[css][2]] == 'function') {
-                trans[START_VALUE] = 'currentValue';
-                trans[END_VALUE] = transitions[css][0];
-                trans[NUM_FRAMES] = transitions[css][1];
-                trans[EASING] = transitions[css][2];
-            }
-
-            // [startValue, endValue, numFrames]
-            else {
+        if (Array.isArray (transitions[css])) {
+            // [startValue, endValue, numFrames, easing, useRough]
+            if (transitions[css].length == 5) {
                 trans[START_VALUE] = transitions[css][0];
-                trans[END_VALUE] = transitions[css][1];
-                trans[NUM_FRAMES] = transitions[css][2];
-                trans[EASING] = false;
+                trans[END_VALUE]   = transitions[css][1];
+                trans[NUM_FRAMES]  = transitions[css][2];
+                trans[EASING]      = transitions[css][3];
+                trans[USE_ROUGH]   = transitions[css][4];
             }
+
+            // [startValue, endValue, numFrames, easing]
+            else if (transitions[css].length == 4) {
+                trans[START_VALUE] = transitions[css][0];
+                trans[END_VALUE]   = transitions[css][1];
+                trans[NUM_FRAMES]  = transitions[css][2];
+                trans[EASING]      = transitions[css][3];
+                trans[USE_ROUGH]   = DEFAULT_ROUGH;
+            }
+
+            else if (transitions[css].length == 3) {
+                // [endValue, numFrames, easingName]
+                if (typeof TRANSFORMS[transitions[css][2]] == 'function') {
+                    trans[START_VALUE] = DEFAULT_START;
+                    trans[END_VALUE]   = transitions[css][0];
+                    trans[NUM_FRAMES]  = transitions[css][1];
+                    trans[EASING]      = transitions[css][2];
+                    trans[USE_ROUGH]   = DEFAULT_ROUGH;
+                }
+
+                // [startValue, endValue, numFrames]
+                else {
+                    trans[START_VALUE] = transitions[css][0];
+                    trans[END_VALUE]   = transitions[css][1];
+                    trans[NUM_FRAMES]  = transitions[css][2];
+                    trans[EASING]      = DEFAULT_EASING;
+                    trans[USE_ROUGH]   = DEFAULT_ROUGH;
+                }
+            }
+
+            // [endValue, numFrames]
+            else if (transitions[css].length == 2) {
+                trans[START_VALUE] = DEFAULT_START;
+                trans[END_VALUE]   = transitions[css][0];
+                trans[NUM_FRAMES]  = transitions[css][1];
+                trans[EASING]      = DEFAULT_EASING;
+                trans[USE_ROUGH]   = DEFAULT_ROUGH;
+            }
+
+            // Invalid transitions array
+            else throw 'Invalid transitions object array, [' + ('' + transitions[css]).replace (/\s*,\s*/g, ', ') + '], given.';
         }
 
-        // [endValue, numFrames]
-        else if (transitions[css].length == 2) {
-            trans[START_VALUE] = 'currentValue';
-            trans[END_VALUE] = transitions[css][0];
-            trans[NUM_FRAMES] = transitions[css][1];
-            trans[EASING] = false;
-        }
+        else {
+            var animDescription = transitions[css];
 
-        // Invalid transitions array
-        else throw 'Invalid transitions object array, [' + ('' + transitions[css]).replace (/\s*,\s*/g, ', ') + '], given.';
+            trans[START_VALUE] = animDescription.start || animDescription.startValue || DEFAULT_START;
+            trans[END_VALUE]   = animDescription.end || animDescription.endValue || DEFAULT_END;
+            trans[NUM_FRAMES]  = animDescription.numFrames || animDescription.frames || DEFAULT_FRAMES;
+            trans[EASING]      = animDescription.transform || animDescription.easing || DEFAULT_EASING;
+            trans[USE_ROUGH]   = animDescription.useRoughInterpolator || DEFAULT_ROUGH;
+        }
 
         return trans;
     }
