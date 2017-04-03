@@ -627,8 +627,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
         // Because the initial value can be "currentValue", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? element.style[css] : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? element.style[css] : trans[END_VALUE];
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[END_VALUE];
         
 
         var animation = {
@@ -678,8 +678,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
         // Because the initial value can be "currentValue", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? element.style[css] : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? element.style[css] : trans[END_VALUE];
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[START_VALUE],
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[END_VALUE];
 
 
         var animation = {
@@ -1005,6 +1005,16 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         }
 
         return c;
+    }
+
+    // Used to convert a camelCase CSS property into its proper hyphenated-version
+    function properCSS (css) {
+        return typeof css == 'string'? css.replace (/([A-Z])/g, function (v) {return '-' + v.toLowerCase ()}) : css;
+    }
+
+    // Gets the currently calculated CSS value of the element
+    function currentCSSValueOf (element, css) {
+        return window.getComputedStyle (element, null).getPropertyValue (properCSS (css));
     }
 
     /**
@@ -1641,8 +1651,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 tStrEnd = '' + trans[END_VALUE];
 
             // Convert "currentValue" string values to CSS values read straight from the DOM
-            tStrStart = tStrStart === 'currentValue'? el.style[css] : tStrStart;
-            tStrEnd = tStrEnd === 'currentValue'? el.style[css] : tStrEnd;
+            tStrStart = tStrStart === 'currentValue'? currentCSSValueOf (el, css) : tStrStart;
+            tStrEnd = tStrEnd === 'currentValue'? currentCSSValueOf (el, css) : tStrEnd;
 
             var decomStart = decompositionOf (tStrStart),
                 decomEnd = decompositionOf (tStrEnd),
