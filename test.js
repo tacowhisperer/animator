@@ -10,5 +10,4 @@ var e = document.body,
 	transB4 = {'border-width': ['0px', 90, 'trig'], 'border-color': ['white', 10]}
 	cssAnimator = new CSSAnimator();
 
-e.style.border = '0px solid white';
 cssAnimator.thenAnimate (e, transF4).thenAnimate (e, transB4);

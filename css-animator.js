@@ -627,8 +627,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
         // Because the initial value can be "currentValue", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[END_VALUE];
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : toCalculatedCSSValue (element, css, trans[START_VALUE]),
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : toCalculatedCSSValue (element, css, trans[END_VALUE]);
         
 
         var animation = {
@@ -678,8 +678,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         var trans = extractTransitionsArray (transitions, css, START_VALUE, END_VALUE, NUM_FRAMES, EASING, USE_ROUGH);
 
         // Because the initial value can be "currentValue", get a valid css property to initialize the object
-        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[START_VALUE],
-            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : trans[END_VALUE];
+        var currentCSSValueStart = trans[START_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : toCalculatedCSSValue (element, css, trans[START_VALUE]),
+            currentCSSValueEnd = trans[END_VALUE] == 'currentValue'? currentCSSValueOf (element, css) : toCalculatedCSSValue (element, css, trans[END_VALUE]);
 
 
         var animation = {
@@ -1017,6 +1017,19 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
         return window.getComputedStyle (element, null).getPropertyValue (properCSS (css));
     }
 
+    // Converts the cascated CSS to calculated CSS
+    function toCalculatedCSSValue (element, css, value) {
+        var goodCSS = properCSS (css),
+            originalCSSValue = window.getComputedStyle (element, null).getPropertyValue (goodCSS);
+
+        element.style[goodCSS] = value;
+
+        var newCSSValue = window.getComputedStyle (element, null).getPropertyValue (goodCSS);
+        element.style[goodCSS] = originalCSSValue;
+
+        return newCSSValue;
+    }
+
     /**
      * Simple queue object. Typically taught in introductory computer science classes.
      */
@@ -1286,10 +1299,22 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 css2Unit = '';
             }
 
-            // Assume that no unit for just 1 value means px
+            // Assume that if only one has no unit, then the unit should be of the other type
             else {
-                css1Unit = css1Unit? css1Unit[0] : 'px';
-                css2Unit = css2Unit? css2Unit[0] : 'px';
+                if (css1Unit && css2Unit === '') {
+                    css1Unit = css1Unit[0];
+                    css2Unit = css1Unit;
+                }
+
+                else if (css2Unit && css1Unit === '') {
+                    css2Unit = css2Unit[0];
+                    css1Unit = css2Unit;
+                }
+
+                else {
+                    css1Unit = Array.isArray (css1Unit)? css1Unit[0] : '';
+                    css2Unit = Array.isArray (css2Unit)? css2Unit[0] : '';
+                }
             }
 
             // Extract the number value given with the CSS Property
@@ -1651,8 +1676,8 @@ function CSSAnimator (framesPerSecond, queueAnimationsLim) {
                 tStrEnd = '' + trans[END_VALUE];
 
             // Convert "currentValue" string values to CSS values read straight from the DOM
-            tStrStart = tStrStart === 'currentValue'? currentCSSValueOf (el, css) : tStrStart;
-            tStrEnd = tStrEnd === 'currentValue'? currentCSSValueOf (el, css) : tStrEnd;
+            tStrStart = tStrStart === 'currentValue'? currentCSSValueOf (el, css) : toCalculatedCSSValue (el, css, tStrStart);
+            tStrEnd = tStrEnd === 'currentValue'? currentCSSValueOf (el, css) : toCalculatedCSSValue (el, css, tStrEnd);
 
             var decomStart = decompositionOf (tStrStart),
                 decomEnd = decompositionOf (tStrEnd),
